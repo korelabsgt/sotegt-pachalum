@@ -118,11 +118,11 @@ export default function ConfiguracionSistema({
     if (matchSector) {
       return s.id === parseInt(matchSector[1], 10);
     }
-    const formatted = s.id === 0 ? s.nombre : `Sector ${s.id}: ${s.nombre}`;
+    const formatted = s.nombre;
     return formatted.toLowerCase().includes(queryLower);
   });
   const sectorExacto = sectores.find((s) => {
-    const formatted = s.id === 0 ? s.nombre : `Sector ${s.id}: ${s.nombre}`;
+    const formatted = s.nombre;
     return formatted.toLowerCase() === sectorQuery.trim().toLowerCase();
   });
   const puedeCrearSector = sectorQuery.trim().length > 1 && !sectorExacto;
@@ -179,8 +179,7 @@ export default function ConfiguracionSistema({
         }),
       );
       setSectorSeleccionado(nuevo.id);
-      const formatted =
-        nuevo.id === 0 ? nuevo.nombre : `Sector ${nuevo.id}: ${nuevo.nombre}`;
+      const formatted = nuevo.nombre;
       setSectorQuery(formatted);
       showSuccessToast(`Sector "${nuevo.nombre}" creado`);
     } else {
@@ -218,8 +217,7 @@ export default function ConfiguracionSistema({
     setCreandoLugar(false);
   };
 
-  const formatSectorLabel = (s: Sector) =>
-    s.id === 0 ? s.nombre : `Sector ${s.id}: ${s.nombre}`;
+  const formatSectorLabel = (s: Sector) => s.nombre;
 
   const iniciarEdicionSector = (s: Sector) => {
     setEditandoSectorId(s.id);
@@ -361,11 +359,7 @@ export default function ConfiguracionSistema({
   };
 
   const sectorObj = sectores.find((s) => s.id === sectorSeleccionado);
-  const sectorNombre = sectorObj
-    ? sectorObj.id === 0
-      ? sectorObj.nombre
-      : `Sector ${sectorObj.id}: ${sectorObj.nombre}`
-    : undefined;
+  const sectorNombre = sectorObj ? sectorObj.nombre : undefined;
 
   const handleSaveCandidato = async () => {
     if (!nombreCandidato.trim() || !lugar.trim()) {
@@ -385,7 +379,8 @@ export default function ConfiguracionSistema({
       queryClient.setQueryData(["config_sistema"], result);
       showSuccessToast("Candidato guardado correctamente");
     } catch (error: unknown) {
-      const mensaje = error instanceof Error ? error.message : "Error desconocido";
+      const mensaje =
+        error instanceof Error ? error.message : "Error desconocido";
       showErrorToast("Error al guardar: " + mensaje);
     } finally {
       setGuardando(false);
@@ -421,7 +416,8 @@ export default function ConfiguracionSistema({
       queryClient.setQueryData(["config_sistema"], result);
       showSuccessToast("Metas guardadas correctamente");
     } catch (error: unknown) {
-      const mensaje = error instanceof Error ? error.message : "Error desconocido";
+      const mensaje =
+        error instanceof Error ? error.message : "Error desconocido";
       showErrorToast("Error al guardar: " + mensaje);
     } finally {
       setGuardando(false);
