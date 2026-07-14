@@ -10,11 +10,12 @@ const SW_URL = "/push/sw.js";
 const SW_SCOPE = "/push/";
 const ACTIVATION_TIMEOUT_MS = 20000;
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+  const buffer = new ArrayBuffer(rawData.length);
+  const outputArray = new Uint8Array(buffer);
   for (let i = 0; i < rawData.length; i++) {
     outputArray[i] = rawData.charCodeAt(i);
   }
@@ -242,5 +243,13 @@ export default function usePushNotifications() {
     return activo ? desactivar() : activar();
   }, [activo, activar, desactivar]);
 
-  return { soportado, activo, cargando, procesando, activar, desactivar, toggle };
+  return {
+    soportado,
+    activo,
+    cargando,
+    procesando,
+    activar,
+    desactivar,
+    toggle,
+  };
 }

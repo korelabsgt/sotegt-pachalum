@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="text-right text-xs md:text-sm leading-tight">
             <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
-            <p className="text-[10px] md:text-xs mt-1">Versión 1.0.0</p>
+            <p className="text-[10px] md:text-xs mt-1">Versión 3.4.1</p>
           </div>
         </div>
       </footer>
