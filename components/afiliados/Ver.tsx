@@ -7,22 +7,13 @@ import {
   ArrowLeft,
   BarChart3,
   Building2,
-  ChevronDown,
   FileBarChart,
   Search,
-  UserPlus,
   X,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Fragment,
-  useCallback,
-  useLayoutEffect,
+  type ReactNode,
   useRef,
   useState,
 } from "react";
@@ -31,6 +22,7 @@ import {
   PiBuildingsDuotone,
   PiChatCircleDotsDuotone,
   PiClipboardTextDuotone,
+  PiCodeDuotone,
   PiMedalDuotone,
   PiShieldCheckDuotone,
   PiUsersThreeDuotone,
@@ -84,7 +76,6 @@ const TAB_THEMES: Record<
   Tab,
   {
     activeText: string;
-    activeBorder: string;
     activeIconBg: string;
     activeIconText: string;
     lineBg: string;
@@ -92,52 +83,45 @@ const TAB_THEMES: Record<
 > = {
   Sede: {
     activeText: "text-blue-700 dark:text-blue-400",
-    activeBorder: "border-blue-300 dark:border-blue-700",
     activeIconBg: "bg-blue-100 dark:bg-blue-950/60",
     activeIconText: "text-blue-700 dark:text-blue-400",
-    lineBg: "bg-blue-300 dark:bg-blue-700",
+    lineBg: "bg-blue-500 dark:bg-blue-400",
   },
   Lideres: {
     activeText: "text-orange-600 dark:text-orange-400",
-    activeBorder: "border-orange-300 dark:border-orange-700",
     activeIconBg: "bg-orange-100 dark:bg-orange-950/60",
     activeIconText: "text-orange-600 dark:text-orange-400",
-    lineBg: "bg-orange-300 dark:bg-orange-700",
+    lineBg: "bg-orange-500 dark:bg-orange-400",
   },
   Afiliados: {
     activeText: "text-sky-600 dark:text-sky-400",
-    activeBorder: "border-sky-300 dark:border-sky-700",
     activeIconBg: "bg-sky-100 dark:bg-sky-950/60",
     activeIconText: "text-sky-600 dark:text-sky-400",
-    lineBg: "bg-sky-300 dark:bg-sky-700",
+    lineBg: "bg-sky-500 dark:bg-sky-400",
   },
   Trabajadores: {
     activeText: "text-violet-600 dark:text-violet-400",
-    activeBorder: "border-violet-300 dark:border-violet-700",
     activeIconBg: "bg-violet-100 dark:bg-violet-950/60",
     activeIconText: "text-violet-600 dark:text-violet-400",
-    lineBg: "bg-violet-300 dark:bg-violet-700",
+    lineBg: "bg-violet-500 dark:bg-violet-400",
   },
   Padron: {
     activeText: "text-teal-700 dark:text-teal-400",
-    activeBorder: "border-teal-300 dark:border-teal-700",
     activeIconBg: "bg-teal-100 dark:bg-teal-950/60",
     activeIconText: "text-teal-700 dark:text-teal-400",
-    lineBg: "bg-teal-300 dark:bg-teal-700",
+    lineBg: "bg-teal-500 dark:bg-teal-400",
   },
   Administrativos: {
     activeText: "text-indigo-600 dark:text-indigo-400",
-    activeBorder: "border-indigo-300 dark:border-indigo-700",
     activeIconBg: "bg-indigo-100 dark:bg-indigo-950/60",
     activeIconText: "text-indigo-600 dark:text-indigo-400",
-    lineBg: "bg-indigo-300 dark:bg-indigo-700",
+    lineBg: "bg-indigo-500 dark:bg-indigo-400",
   },
   Mensajes: {
     activeText: "text-green-600 dark:text-green-400",
-    activeBorder: "border-green-300 dark:border-green-700",
     activeIconBg: "bg-green-100 dark:bg-green-950/60",
     activeIconText: "text-green-600 dark:text-green-400",
-    lineBg: "bg-green-300 dark:bg-green-700",
+    lineBg: "bg-green-500 dark:bg-green-400",
   },
 };
 
@@ -155,19 +139,19 @@ const TAB_ORDER: Tab[] = [
 
 const tabBtnClass = (active: boolean, tab: Tab) => {
   const theme = TAB_THEMES[tab];
-  return `relative flex w-full md:w-52 md:shrink-0 flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 px-1 md:px-3 py-2.5 md:py-2.5 text-[11px] leading-tight md:text-sm font-semibold rounded-t-md md:rounded-t-lg -mb-px border-[3px] md:border-4 border-transparent border-b-0 bg-white dark:bg-neutral-950 transition-colors duration-500 ${
+  return `relative flex w-full md:w-auto md:shrink-0 flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 px-1 md:px-3 py-1.5 md:py-2 text-[10px] leading-tight md:text-sm font-semibold bg-transparent transition-colors duration-300 ${
     active
       ? `z-10 ${theme.activeText}`
-      : `z-0 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900`
+      : `z-0 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200`
   }`;
 };
 
 const tabIconClass = (active: boolean, tab: Tab) => {
   const theme = TAB_THEMES[tab];
-  return `p-1 md:p-1.5 rounded-md transition-colors duration-300 shrink-0 ${
+  return `flex items-center justify-center p-0.5 md:p-1 rounded-md transition-colors duration-300 shrink-0 ${
     active
       ? `${theme.activeIconBg} ${theme.activeIconText}`
-      : "bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400"
+      : "text-gray-400 dark:text-gray-500"
   }`;
 };
 
@@ -175,23 +159,8 @@ export default function Ver() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<Tab>("Sede");
-  const [tabLineOrigin, setTabLineOrigin] = useState("0%");
   const [tabSlideDir, setTabSlideDir] = useState(1);
-  const tabsRowRef = useRef<HTMLDivElement>(null);
-  const tabBtnRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const prevTabRef = useRef<Tab>("Sede");
-
-  const medirOrigenLinea = useCallback((tab: Tab) => {
-    const row = tabsRowRef.current;
-    const btn = tabBtnRefs.current[tab];
-    if (!row || !btn) return;
-    const rowRect = row.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    if (rowRect.width <= 0) return;
-    const centro =
-      ((btnRect.left + btnRect.width / 2 - rowRect.left) / rowRect.width) * 100;
-    setTabLineOrigin(`${Math.min(100, Math.max(0, centro))}%`);
-  }, []);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEstadisticasOpen, setIsEstadisticasOpen] = useState(false);
@@ -367,23 +336,6 @@ export default function Ver() {
   const totalMiembrosGeneral =
     totalAfiliadosSede + totalAfiliadosLideres + totalAfiliadosTrabajadores;
 
-  useLayoutEffect(() => {
-    medirOrigenLinea(activeTab);
-    const onResize = () => medirOrigenLinea(activeTab);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [
-    activeTab,
-    medirOrigenLinea,
-    esAdminOSuper,
-    padronHabilitado,
-    totalLideresRegistrados,
-    totalEmpleadosRegistrados,
-    totalAdministrativosRegistrados,
-    totalMiembrosGeneral,
-    totalAfiliadosSede,
-  ]);
-
   const cargandoLideres = isDashboardLoading;
   const cargandoMiembros = isLoadingAfiliados || cargandoLideres;
 
@@ -481,10 +433,32 @@ export default function Ver() {
     const nextIdx = TAB_ORDER.indexOf(tab);
     setTabSlideDir(nextIdx >= prevIdx ? 1 : -1);
     prevTabRef.current = tab;
-    medirOrigenLinea(tab);
     setActiveTab(tab);
+    setSearchTerm("");
     setLiderParaCelula(null);
   };
+
+  const renderBarraPestana = (acciones?: ReactNode) => (
+    <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 w-full min-w-0">
+      <div className="relative flex-1 min-w-0 w-full">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar por nombre"
+          className="pl-9 md:pl-10 pr-3 py-2 h-10 text-sm border border-gray-300 dark:border-neutral-700 rounded-md w-full bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      {acciones ? (
+        <div className="flex flex-row items-center gap-2 shrink-0 w-full sm:w-auto">
+          {acciones}
+        </div>
+      ) : null}
+    </div>
+  );
 
   const handleCloseFormModal = () => {
     setIsFormOpen(false);
@@ -515,102 +489,36 @@ export default function Ver() {
       )}
       <div className="px-2 md:px-6 max-w-full overflow-x-hidden min-w-0 w-full">
         <ConfiguracionSistema showMetas={false} allowEditing={false} />
-        <div className="flex flex-col mb-4 gap-3 min-w-0 w-full">
-          <div className="flex flex-row items-center gap-2 md:gap-3 w-full min-w-0">
-            <div
-              className={`relative shrink-0 min-w-0 ${puedeSimular ? "group" : ""}`}
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 min-w-0 w-full">
+          <div
+            className={`relative shrink-0 min-w-0 ${puedeSimular ? "group" : ""}`}
+          >
+            <h1
+              className={`text-base sm:text-xl md:text-2xl font-bold text-black dark:text-white flex items-center gap-1.5 md:gap-2 ${
+                puedeSimular
+                  ? "cursor-pointer underline decoration-transparent underline-offset-[6px] decoration-2 transition-[text-decoration-color] duration-300 ease-in-out group-hover:decoration-black dark:group-hover:decoration-white"
+                  : ""
+              }`}
+              onClick={puedeSimular ? handleSimular : undefined}
             >
-              <h1
-                className={`text-base sm:text-2xl font-bold text-black dark:text-white md:text-3xl flex items-center gap-1.5 md:gap-2 ${
-                  puedeSimular
-                    ? "cursor-pointer underline decoration-transparent underline-offset-[6px] decoration-2 transition-[text-decoration-color] duration-300 ease-in-out group-hover:decoration-black dark:group-hover:decoration-white"
-                    : ""
-                }`}
-                onClick={puedeSimular ? handleSimular : undefined}
-              >
-                <span className="whitespace-nowrap">Gestión de Datos</span>
-                <BarChart3 className="w-5 h-5 md:w-8 md:h-8 text-blue-600 shrink-0" />
-              </h1>
-              {puedeSimular && (
-                <span className="pointer-events-none absolute left-0 top-full z-50 mt-2 scale-95 whitespace-nowrap rounded-md bg-gray-900/95 dark:bg-gray-100 dark:text-gray-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg translate-y-1 transition-all duration-300 ease-out group-hover:scale-100 group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-100">
-                  Click para simular un registro
-                </span>
-              )}
-            </div>
-            {vistaConPestanas && (
-              <div className="relative flex-1 min-w-0 w-full">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre"
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-md w-full bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+              <span className="whitespace-nowrap">Gestión de Datos</span>
+              <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-600 shrink-0" />
+            </h1>
+            {puedeSimular && (
+              <span className="pointer-events-none absolute left-0 top-full z-50 mt-2 scale-95 whitespace-nowrap rounded-md bg-gray-900/95 dark:bg-gray-100 dark:text-gray-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg translate-y-1 transition-all duration-300 ease-out group-hover:scale-100 group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-100">
+                Click para simular un registro
+              </span>
             )}
           </div>
           {vistaConPestanas && (
-            <div className="flex flex-row items-stretch gap-2 w-full">
-              <Button
-                onClick={() => setIsEstadisticasOpen(true)}
-                variant="outline"
-                className="gap-1.5 flex-1 min-w-0 text-xs md:text-xl font-bold border-blue-500 dark:border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/45 hover:bg-blue-100 dark:hover:bg-blue-950/65 backdrop-blur-sm shadow-none transition-colors"
-              >
-                <BarChart3 className="w-4 h-4 md:w-6 md:h-6 shrink-0" />{" "}
-                Estadísticas
-              </Button>
-              {puedeVerBotonNuevo && (
-                <div className="flex-1 min-w-0">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="gap-1.5 w-full text-xs md:text-xl font-bold border-green-500 dark:border-green-600 text-green-700 dark:text-green-400 bg-white/70 dark:bg-white/5 hover:bg-green-100 dark:hover:bg-green-950/55 backdrop-blur-sm shadow-none transition-colors"
-                      >
-                        <UserPlus className="w-4 h-4 md:w-6 md:h-6 shrink-0" />{" "}
-                        Nuevo
-                        <ChevronDown className="w-4 h-4 md:w-5 md:h-5 opacity-80 shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-[10rem]">
-                      <DropdownMenuItem
-                        className="cursor-pointer font-semibold"
-                        onClick={() => handleOpenCreateUsuarioModal("LIDER")}
-                      >
-                        Líder
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="cursor-pointer font-semibold"
-                        onClick={() =>
-                          handleOpenCreateUsuarioModal("EMPLEADO")
-                        }
-                      >
-                        Empleado
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="cursor-pointer font-semibold"
-                        onClick={() => handleOpenCreateUsuarioModal("ADMIN")}
-                      >
-                        Admin
-                      </DropdownMenuItem>
-                      {puedeCrearRolSuper && (
-                        <DropdownMenuItem
-                          className="cursor-pointer font-semibold"
-                          onClick={() =>
-                            handleOpenCreateUsuarioModal("SUPER")
-                          }
-                        >
-                          Super
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-            </div>
+            <Button
+              onClick={() => setIsEstadisticasOpen(true)}
+              variant="outline"
+              className="gap-1.5 h-10 px-3 text-sm font-bold border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 shadow-sm hover:bg-blue-200 dark:hover:bg-blue-900 hover:text-blue-900 dark:hover:text-blue-100 hover:shadow-md transition-all w-full sm:w-auto shrink-0"
+            >
+              <BarChart3 className="w-4 h-4 shrink-0" />
+              Estadísticas
+            </Button>
           )}
         </div>
 
@@ -660,51 +568,55 @@ export default function Ver() {
               objetivoTotal={configSis?.objetivo_total || 0}
             />
             <div className="mb-6 w-full min-w-0 bg-white dark:bg-neutral-950">
-              <div
-                ref={tabsRowRef}
-                className="w-full min-w-0 pb-0 gap-1 grid grid-cols-4 md:flex md:flex-nowrap md:items-end"
-              >
+              <div className="relative w-full min-w-0 gap-0.5 md:gap-1 grid grid-cols-4 md:flex md:flex-nowrap md:items-stretch border-b border-gray-200 dark:border-neutral-700">
                 {(
                   [
                     {
                       id: "Sede" as Tab,
-                      label: `Sede (${totalAfiliadosSede})`,
+                      label: "Sede",
+                      count: totalAfiliadosSede,
                       icon: PiBuildingsDuotone,
                       show: true,
                     },
                     {
                       id: "Lideres" as Tab,
-                      label: `Líderes (${totalLideresRegistrados})`,
+                      label: "Líderes",
+                      count: totalLideresRegistrados,
                       icon: PiMedalDuotone,
                       show: true,
                     },
                     {
                       id: "Trabajadores" as Tab,
-                      label: `Empleados (${totalEmpleadosRegistrados})`,
+                      label: "Empleados",
+                      count: totalEmpleadosRegistrados,
                       icon: PiBriefcaseDuotone,
                       show: true,
                     },
                     {
                       id: "Afiliados" as Tab,
-                      label: `Miembros (${totalMiembrosGeneral})`,
+                      label: "Miembros",
+                      count: totalMiembrosGeneral,
                       icon: PiUsersThreeDuotone,
                       show: true,
                     },
                     {
                       id: "Padron" as Tab,
                       label: "Padrón",
+                      count: null as number | null,
                       icon: PiClipboardTextDuotone,
                       show: esAdminOSuper && padronHabilitado,
                     },
                     {
                       id: "Administrativos" as Tab,
-                      label: `Administrativos (${totalAdministrativosRegistrados})`,
+                      label: "Administrativos",
+                      count: totalAdministrativosRegistrados,
                       icon: PiShieldCheckDuotone,
                       show: esAdminOSuper,
                     },
                     {
                       id: "Mensajes" as Tab,
                       label: "Mensajes",
+                      count: null as number | null,
                       icon: PiChatCircleDotsDuotone,
                       show: esAdminOSuper,
                     },
@@ -714,54 +626,52 @@ export default function Ver() {
                   .map((tab) => {
                     const Icon = tab.icon;
                     const activo = activeTab === tab.id;
+                    const theme = TAB_THEMES[tab.id];
                     return (
                       <motion.button
                         key={tab.id}
                         type="button"
-                        ref={(el) => {
-                          tabBtnRefs.current[tab.id] = el;
-                        }}
                         onClick={() => cambiarTab(tab.id)}
                         className={tabBtnClass(activo, tab.id)}
-                        whileHover={{ y: activo ? 0 : -2 }}
                         whileTap={{ scale: 0.98 }}
-                        transition={{ duration: 0.45, ease: tabEase }}
+                        transition={{ duration: 0.25, ease: tabEase }}
                       >
+                        <span
+                          className={`relative z-10 ${tabIconClass(activo, tab.id)}`}
+                        >
+                          <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
+                        </span>
+                        <span className="relative z-10 inline-flex items-center justify-center gap-1 md:gap-1.5 max-w-full">
+                          <span className="text-center break-words hyphens-auto">
+                            {tab.label}
+                          </span>
+                          {tab.count !== null && (
+                            <span
+                              className={`inline-flex items-center justify-center min-w-[1.15rem] h-4 md:min-w-[1.35rem] md:h-5 px-1 rounded-full text-[9px] md:text-[11px] font-black leading-none tabular-nums ${
+                                activo
+                                  ? `${theme.activeIconBg} ${theme.activeIconText}`
+                                  : "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-gray-400"
+                              }`}
+                            >
+                              {tab.count > 999 ? "999+" : tab.count}
+                            </span>
+                          )}
+                        </span>
                         {activo && (
                           <motion.span
-                            layoutId="pestana-orilla"
-                            className={`pointer-events-none absolute inset-0 z-0 rounded-t-md md:rounded-t-lg border-[3px] md:border-4 border-b-0 ${TAB_THEMES[tab.id].activeBorder}`}
+                            layoutId="pestana-underline"
+                            className={`pointer-events-none absolute left-1 right-1 md:left-2 md:right-2 bottom-0 h-0.5 rounded-full z-20 ${theme.lineBg}`}
                             transition={{
                               type: "spring",
-                              stiffness: 260,
-                              damping: 28,
-                              mass: 0.85,
+                              stiffness: 380,
+                              damping: 32,
+                              mass: 0.7,
                             }}
                           />
                         )}
-                        <motion.span
-                          className={`relative z-10 ${tabIconClass(activo, tab.id)}`}
-                          animate={activo ? { scale: 1.08 } : { scale: 1 }}
-                          transition={{ duration: 0.45, ease: tabEase }}
-                        >
-                          <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
-                        </motion.span>
-                        <span className="relative z-10 max-w-full text-center break-words hyphens-auto px-0.5">
-                          {tab.label}
-                        </span>
                       </motion.button>
                     );
                   })}
-              </div>
-              <div className="relative h-[3px] md:h-1 w-full overflow-hidden bg-gray-200 dark:bg-neutral-700">
-                <motion.div
-                  key={activeTab}
-                  className={`absolute inset-0 ${TAB_THEMES[activeTab].lineBg}`}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.6, ease: tabEase }}
-                  style={{ transformOrigin: tabLineOrigin }}
-                />
               </div>
             </div>
 
@@ -848,56 +758,121 @@ export default function Ver() {
                     ))}
 
                   {activeTab === "Lideres" && (
-                    <Lideres
-                      lideres={lideresVisibles}
-                      onVerCelula={handleOpenCelula}
-                      onEditar={handleOpenEditLiderModal}
-                      rolUsuarioSesion={rolSesionCelula}
-                      onDataChange={refreshAfterDeletion}
-                      searchTerm={searchTerm}
-                      idUsuarioSesion={userId}
-                      isLoading={cargandoLideres}
-                    />
+                    <>
+                      {renderBarraPestana(
+                        puedeVerBotonNuevo ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              handleOpenCreateUsuarioModal("LIDER")
+                            }
+                            className="gap-1.5 h-10 px-3 text-sm font-semibold border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/60 shadow-sm w-full sm:w-auto"
+                          >
+                            <PiMedalDuotone className="w-4 h-4 shrink-0" />
+                            Nuevo Líder
+                          </Button>
+                        ) : undefined,
+                      )}
+                      <Lideres
+                        lideres={lideresVisibles}
+                        onVerCelula={handleOpenCelula}
+                        onEditar={handleOpenEditLiderModal}
+                        rolUsuarioSesion={rolSesionCelula}
+                        onDataChange={refreshAfterDeletion}
+                        searchTerm={searchTerm}
+                        idUsuarioSesion={userId}
+                        isLoading={cargandoLideres}
+                      />
+                    </>
                   )}
                   {activeTab === "Afiliados" && (
-                    <AfiliadosGeneral
-                      afiliados={afiliados}
-                      lideres={allUsers}
-                      onEditar={handleOpenEditModal}
-                      onDataChange={refreshAfterDeletion}
-                      searchTerm={searchTerm}
-                      isLoading={cargandoMiembros}
-                    />
+                    <>
+                      {renderBarraPestana()}
+                      <AfiliadosGeneral
+                        afiliados={afiliados}
+                        lideres={allUsers}
+                        onEditar={handleOpenEditModal}
+                        onDataChange={refreshAfterDeletion}
+                        searchTerm={searchTerm}
+                        isLoading={cargandoMiembros}
+                      />
+                    </>
                   )}
                   {activeTab === "Trabajadores" && (
-                    <Lideres
-                      lideres={trabajadores}
-                      onVerCelula={handleOpenCelula}
-                      onEditar={handleOpenEditLiderModal}
-                      rolUsuarioSesion={rolSesionCelula}
-                      onDataChange={refreshAfterDeletion}
-                      searchTerm={searchTerm}
-                      idUsuarioSesion={userId}
-                      isLoading={cargandoLideres}
-                    />
+                    <>
+                      {renderBarraPestana(
+                        puedeVerBotonNuevo ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              handleOpenCreateUsuarioModal("EMPLEADO")
+                            }
+                            className="gap-1.5 h-10 px-3 text-sm font-semibold border-violet-500 text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60 shadow-sm w-full sm:w-auto"
+                          >
+                            <PiBriefcaseDuotone className="w-4 h-4 shrink-0" />
+                            Nuevo Empleado
+                          </Button>
+                        ) : undefined,
+                      )}
+                      <Lideres
+                        lideres={trabajadores}
+                        onVerCelula={handleOpenCelula}
+                        onEditar={handleOpenEditLiderModal}
+                        rolUsuarioSesion={rolSesionCelula}
+                        onDataChange={refreshAfterDeletion}
+                        searchTerm={searchTerm}
+                        idUsuarioSesion={userId}
+                        isLoading={cargandoLideres}
+                      />
+                    </>
                   )}
                   {activeTab === "Padron" &&
                     esAdminOSuper &&
                     padronHabilitado && <Padron />}
                   {activeTab === "Administrativos" && (
                     <>
-                      {puedeVerReportesLideres && (
-                        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="gap-2 font-bold text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60 text-sm md:text-base"
-                            onClick={() => setIsReportesLideresOpen(true)}
-                          >
-                            <FileBarChart className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
-                            Reportes
-                          </Button>
-                        </div>
+                      {renderBarraPestana(
+                        puedeVerBotonNuevo ? (
+                          <>
+                            {puedeVerReportesLideres && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="gap-1.5 h-10 px-3 text-sm font-semibold text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60"
+                                onClick={() => setIsReportesLideresOpen(true)}
+                              >
+                                <FileBarChart className="w-4 h-4 shrink-0" />
+                                Reportes
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() =>
+                                handleOpenCreateUsuarioModal("ADMIN")
+                              }
+                              className="gap-1.5 h-10 px-3 text-sm font-semibold border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 shadow-sm"
+                            >
+                              <PiShieldCheckDuotone className="w-4 h-4 shrink-0" />
+                              Nuevo Admin
+                            </Button>
+                            {puedeCrearRolSuper && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                  handleOpenCreateUsuarioModal("SUPER")
+                                }
+                                className="gap-1.5 h-10 px-3 text-sm font-semibold border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 shadow-sm"
+                              >
+                                <PiCodeDuotone className="w-4 h-4 shrink-0" />
+                                Nuevo Super
+                              </Button>
+                            )}
+                          </>
+                        ) : undefined,
                       )}
                       <Lideres
                         lideres={administrativos}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { obtenerConfiguracionAction } from "../dashboard/actions/configuracion";
 import {
   ChevronLeft,
@@ -21,7 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -196,37 +194,34 @@ export default function Lideres({
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-neutral-800"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-neutral-800"
                       aria-label="Acciones"
                     >
                       <MoreVertical className="h-5 w-5" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuContent align="end" className="min-w-[7.5rem] w-auto p-1">
                     <DropdownMenuItem
-                      className="cursor-pointer gap-2"
+                      className="cursor-pointer gap-2 text-sm py-2 px-2.5 text-gray-700 dark:text-gray-200 focus:text-gray-700 dark:focus:text-gray-200"
                       onClick={() => onEditar(lider)}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4 shrink-0" />
                       Editar
                     </DropdownMenuItem>
-                    {esAdminOSuper && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
-                          onClick={() => {
-                            if (tieneAfiliados) {
-                              swalNoEliminarCelula();
-                            } else {
-                              eliminar(lider, onDataChange);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </>
+                    {esAdminOSuper && lider.id !== idUsuarioSesion && (
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 text-sm py-2 px-2.5 text-red-600 focus:text-red-600"
+                        onClick={() => {
+                          if (tieneAfiliados) {
+                            swalNoEliminarCelula();
+                          } else {
+                            eliminar(lider, onDataChange);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 shrink-0" />
+                        Eliminar
+                      </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -239,32 +234,30 @@ export default function Lideres({
               className={`border-2 rounded-lg overflow-hidden transition-colors duration-300 ${bordeCard} ${getFondoCard(lider)}`}
             >
               <div
-                className={`p-3 md:p-4 flex flex-col min-w-0 gap-2 ${isLider && lider.id !== idUsuarioSesion ? "cursor-default" : "cursor-pointer"}`}
+                className={`px-3 pt-4 pb-3 md:px-4 md:pt-5 md:pb-4 flex flex-col min-w-0 gap-3 ${isLider && lider.id !== idUsuarioSesion ? "cursor-default" : "cursor-pointer"}`}
                 onClick={() => {
                   if (isLider && lider.id !== idUsuarioSesion) return;
                   onVerCelula(lider);
                 }}
               >
-                <div className="flex items-start gap-2 min-w-0 w-full">
+                <div className="flex items-center gap-2 min-w-0 w-full">
                   <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-xs font-black text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 shrink-0">
                     {startIndex + index + 1}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3
-                      className={`font-black text-sm md:text-base leading-tight truncate ${lider.id === idUsuarioSesion ? "text-blue-900 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
+                  <h3
+                    className={`min-w-0 flex-1 font-black text-sm md:text-base leading-none truncate ${lider.id === idUsuarioSesion ? "text-blue-900 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
+                  >
+                    {lider.nombres}{" "}
+                    <span
+                      className={`font-bold ${lider.id === idUsuarioSesion ? "text-blue-800/80 dark:text-blue-400/90" : "text-slate-600 dark:text-slate-300"}`}
                     >
-                      {lider.nombres}{" "}
-                      <span
-                        className={`font-bold ${lider.id === idUsuarioSesion ? "text-blue-800/80 dark:text-blue-400/90" : "text-slate-600 dark:text-slate-300"}`}
-                      >
-                        {lider.apellidos}
-                      </span>
-                    </h3>
-                    <span className="text-[9px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase">
-                      Nivel de compromiso:{" "}
-                      <span className={textoColor}>{nivelCompromiso}</span>
+                      {lider.apellidos}
                     </span>
-                  </div>
+                  </h3>
+                  <span className="shrink-0 text-[10px] md:text-xs font-black uppercase leading-none whitespace-nowrap text-gray-900 dark:text-white">
+                    Nivel de compromiso:{" "}
+                    <span className={textoColor}>{nivelCompromiso}</span>
+                  </span>
                   {renderMenuAcciones()}
                 </div>
 
@@ -276,44 +269,44 @@ export default function Lideres({
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                <div className="flex items-center justify-between gap-2 w-full min-w-0 mt-0.5">
                   <div
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md border shrink-0 ${estiloTotal}`}
+                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border shrink-0 ${estiloTotal}`}
                     title="Total"
                   >
                     <span
-                      className={`text-xs md:text-sm font-black uppercase ${textoColor}`}
+                      className={`text-xs md:text-sm font-black uppercase leading-none ${textoColor}`}
                     >
                       Total
                     </span>
                     <span
-                      className={`text-sm md:text-base font-black ${textoColor}`}
+                      className={`text-xs md:text-sm font-black leading-none ${textoColor}`}
                     >
                       {totalEnGrupo}/{META_CELULA}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end min-w-0">
                     <div
-                      className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-800"
+                      className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-2 py-1.5 rounded-md border border-blue-100 dark:border-blue-800"
                       title="Titulares"
                     >
-                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
-                      <span className="text-xs md:text-sm font-black text-blue-600 uppercase">
+                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 shrink-0" />
+                      <span className="text-xs md:text-sm font-black text-blue-600 uppercase leading-none">
                         Titulares
                       </span>
-                      <span className="text-sm md:text-base font-black text-blue-700 dark:text-blue-400">
+                      <span className="text-xs md:text-sm font-black text-blue-700 dark:text-blue-400 leading-none">
                         {lider.conteoTitulares || 0}
                       </span>
                     </div>
                     <div
-                      className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/50 px-2 py-1 rounded-md border border-purple-100 dark:border-purple-800"
+                      className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/50 px-2 py-1.5 rounded-md border border-purple-100 dark:border-purple-800"
                       title="Familiares"
                     >
-                      <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600" />
-                      <span className="text-xs md:text-sm font-black text-purple-600 uppercase">
+                      <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600 shrink-0" />
+                      <span className="text-xs md:text-sm font-black text-purple-600 uppercase leading-none">
                         Familiares
                       </span>
-                      <span className="text-sm md:text-base font-black text-purple-700 dark:text-purple-400">
+                      <span className="text-xs md:text-sm font-black text-purple-700 dark:text-purple-400 leading-none">
                         {lider.conteoFamiliares || 0}
                       </span>
                     </div>
@@ -325,48 +318,40 @@ export default function Lideres({
         })}
       </div>
 
-      {/* Paginación */}
-      <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 md:gap-6 mt-8 w-full px-1">
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-gray-200 dark:border-neutral-700 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-blue-600 dark:text-blue-400 transition-all shadow-sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1 || itemsPerPage === "all"}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div className="bg-white dark:bg-neutral-900 px-3 sm:px-4 py-2 rounded-lg border border-gray-100 dark:border-neutral-700 shadow-sm min-w-[88px] sm:min-w-[120px] text-center">
-            <span className="text-sm font-black text-gray-900 dark:text-gray-100">
-              {currentPage} / {totalPages || 1}
-            </span>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-gray-200 dark:border-neutral-700 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-blue-600 dark:text-blue-400 transition-all shadow-sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages || itemsPerPage === "all"}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 bg-white dark:bg-neutral-900 px-3 sm:px-4 py-2 rounded-lg border border-gray-100 dark:border-neutral-700 shadow-sm shrink-0">
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              const val = e.target.value;
-              setItemsPerPage(val === "all" ? "all" : parseInt(val));
-            }}
-            className="text-sm font-black outline-none bg-transparent cursor-pointer uppercase text-blue-600 focus:ring-0"
-          >
-            <option value={10}>10</option>
-            <option value={50}>50</option>
-            <option value="all">Todos</option>
-          </select>
-        </div>
+      <div className="flex flex-row items-center justify-center gap-3 mt-8 mb-10 md:mb-14 w-full px-1">
+        <button
+          type="button"
+          className="inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1 || itemsPerPage === "all"}
+          aria-label="Anterior"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="text-sm text-gray-800 dark:text-gray-100 tabular-nums">
+          {currentPage}/{totalPages || 1}
+        </span>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages || itemsPerPage === "all"}
+          aria-label="Siguiente"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => {
+            const val = e.target.value;
+            setItemsPerPage(val === "all" ? "all" : parseInt(val));
+          }}
+          className="ml-1 h-8 rounded border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-2 text-sm text-gray-800 dark:text-gray-100 cursor-pointer"
+        >
+          <option value={10}>10</option>
+          <option value={50}>50</option>
+          <option value="all">Todos</option>
+        </select>
       </div>
     </>
   );

@@ -66,7 +66,7 @@ export function calcularNivelCompromiso(
     return {
       nivel: "Bajo",
       colorBarra: "bg-gray-300 dark:bg-neutral-600",
-      textoColor: "text-gray-500 dark:text-gray-400",
+      textoColor: "text-red-600 dark:text-red-400",
       bordeCard: "border-gray-400 dark:border-neutral-500",
       gifUrl: "/gif/afiliados/gif1.gif",
       mensaje: `👋 ¡Hola ${nombreLider ?? etiquetaRol}! Inicia tu grupo registrándote a ti mismo.`,

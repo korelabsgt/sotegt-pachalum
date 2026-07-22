@@ -10,10 +10,16 @@ export const deleteUserAccountAction = async (userId: string) => {
   if (!userId) return { error: "ID de usuario no proporcionado." };
 
   try {
-    // 1. Eliminar logs asociados para evitar errores de llave foránea
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id && user.id === userId) {
+      return { error: "No puedes eliminar tu propio perfil." };
+    }
+
     await supabaseAdmin.from("logs").delete().eq("user_id", userId);
 
-    // 2. Eliminar perfil asociado
     const { error: perfilError } = await supabaseAdmin
       .from("info_perfil")
       .delete()
@@ -21,10 +27,8 @@ export const deleteUserAccountAction = async (userId: string) => {
 
     if (perfilError) {
       console.error("Error al eliminar perfil de usuario:", perfilError.message);
-      // Continuamos intentando eliminar la cuenta de auth de todos modos
     }
 
-    // 3. Eliminar la cuenta de autenticación
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (error) {

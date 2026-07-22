@@ -2,16 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signUpAction, updateUsuarioAction, obtenerEmailUsuarioAction } from "@/app/actions/usuarios";
+import {
+  signUpAction,
+  updateUsuarioAction,
+  obtenerEmailUsuarioAction,
+} from "@/app/actions/usuarios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronUp } from "lucide-react";
+import { Check, ChevronUp } from "lucide-react";
 import { toast } from "@/lib/toast";
 import PasswordSection from "@/components/admin/sign-up/PasswordSection";
 import useUserData from "@/hooks/sesion/useUserData";
 import { createClient } from "@/utils/supabase/client";
 import { NUEVO_LIDER_SIMULADO } from "@/components/afiliados/datosSimulados";
+import {
+  PiBriefcaseDuotone,
+  PiBuildingsDuotone,
+  PiCodeDuotone,
+  PiMedalDuotone,
+  PiShieldCheckDuotone,
+} from "react-icons/pi";
+import type { IconType } from "react-icons";
 
 interface RolDisponible {
   id: number;
@@ -25,6 +37,77 @@ interface SignupFormProps {
   rolSesion?: string;
   modoCrearSede?: boolean;
   rolInicial?: "LIDER" | "EMPLEADO" | "ADMIN" | "SUPER" | null;
+}
+
+type RolVisual = {
+  label: string;
+  Icon: IconType;
+  text: string;
+  border: string;
+  bg: string;
+  check: string;
+};
+
+function estiloRol(nombreRaw: string): RolVisual {
+  const nombre = nombreRaw.toUpperCase();
+  if (nombre === "LIDER" || nombre === "LÍDER") {
+    return {
+      label: "Líder",
+      Icon: PiMedalDuotone,
+      text: "text-orange-600 dark:text-orange-400",
+      border: "border-orange-400 dark:border-orange-500",
+      bg: "bg-orange-50 dark:bg-orange-950/40",
+      check: "text-orange-600 dark:text-orange-400",
+    };
+  }
+  if (nombre === "EMPLEADO" || nombre === "TRABAJADOR") {
+    return {
+      label: "Empleado",
+      Icon: PiBriefcaseDuotone,
+      text: "text-violet-600 dark:text-violet-400",
+      border: "border-violet-400 dark:border-violet-500",
+      bg: "bg-violet-50 dark:bg-violet-950/40",
+      check: "text-violet-600 dark:text-violet-400",
+    };
+  }
+  if (nombre === "ADMIN" || nombre === "ADMINISTRADOR") {
+    return {
+      label: "Admin",
+      Icon: PiShieldCheckDuotone,
+      text: "text-indigo-600 dark:text-indigo-400",
+      border: "border-indigo-400 dark:border-indigo-500",
+      bg: "bg-indigo-50 dark:bg-indigo-950/40",
+      check: "text-indigo-600 dark:text-indigo-400",
+    };
+  }
+  if (nombre === "SUPER") {
+    return {
+      label: "Super",
+      Icon: PiCodeDuotone,
+      text: "text-emerald-600 dark:text-emerald-400",
+      border: "border-emerald-400 dark:border-emerald-500",
+      bg: "bg-emerald-50 dark:bg-emerald-950/40",
+      check: "text-emerald-600 dark:text-emerald-400",
+    };
+  }
+  if (nombre === "SEDE") {
+    return {
+      label: "Sede",
+      Icon: PiBuildingsDuotone,
+      text: "text-blue-600 dark:text-blue-400",
+      border: "border-blue-400 dark:border-blue-500",
+      bg: "bg-blue-50 dark:bg-blue-950/40",
+      check: "text-blue-600 dark:text-blue-400",
+    };
+  }
+  return {
+    label: nombreRaw,
+    Icon: PiShieldCheckDuotone,
+    text: "text-gray-700 dark:text-gray-200",
+    border: "border-gray-300 dark:border-neutral-600",
+    bg: "bg-gray-50 dark:bg-neutral-800",
+    check: "text-gray-600 dark:text-gray-300",
+  };
 }
 
 export function SignupForm({
@@ -190,12 +273,14 @@ export function SignupForm({
     Boolean(rolInicial) &&
     !isEdit &&
     !(rolInicial === "SUPER" && !esSuperSesion);
+  const rolSoloLectura = !isEdit && (modoCrearSede || rolFijoDesdeMenu);
   const editandoSede =
     isEdit &&
     ((initialData?.rol || "").toUpperCase() === "SEDE" ||
       Number(initialData?.rol_id) === 5);
   const rolesParaSelector = rolesDisponibles.filter((r) => {
     const nombre = r.nombre.toUpperCase();
+    if (nombre === "DOCUMENTADOR") return false;
     if (!esSuperSesion && nombre === "SUPER") return false;
     if (modoCrearSede) return nombre === "SEDE" || r.id === 5;
     if (rolFijoDesdeMenu) {
@@ -257,6 +342,39 @@ export function SignupForm({
       onSuccess();
       if (!isModal) router.refresh();
     }
+  };
+
+  const renderRolCard = (r: RolDisponible) => {
+    const visual = estiloRol(r.nombre);
+    const seleccionado = rol_id === r.id.toString();
+    const Icon = visual.Icon;
+    return (
+      <button
+        key={r.id}
+        type="button"
+        disabled={rolSoloLectura}
+        onClick={() => {
+          if (!rolSoloLectura) setRolId(r.id.toString());
+        }}
+        className={`flex items-center gap-2.5 w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+          seleccionado
+            ? `${visual.bg} ${visual.border}`
+            : "border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-gray-50 dark:hover:bg-neutral-800"
+        } ${rolSoloLectura ? "cursor-default" : "cursor-pointer"}`}
+      >
+        <Icon className={`w-5 h-5 shrink-0 ${visual.text}`} />
+        <span
+          className={`flex-1 text-sm ${
+            seleccionado ? visual.text : "text-gray-800 dark:text-gray-100"
+          }`}
+        >
+          {visual.label}
+        </span>
+        {seleccionado && (
+          <Check className={`w-4 h-4 shrink-0 ${visual.check}`} />
+        )}
+      </button>
+    );
   };
 
   return (
@@ -343,20 +461,16 @@ export function SignupForm({
             <Label className="text-gray-900 dark:text-gray-100">
               Asignar Rol
             </Label>
-            <select
-              name="rol_id"
-              value={rol_id}
-              onChange={(e) => setRolId(e.target.value)}
-              disabled={modoCrearSede || rolFijoDesdeMenu}
-              className="w-full border border-gray-300 dark:border-neutral-600 rounded h-12 px-3 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <option value="">Seleccione un rol...</option>
-              {rolesParaSelector.map((r) => (
-                <option key={r.id} value={r.id.toString()}>
-                  {r.nombre}
-                </option>
-              ))}
-            </select>
+            <input type="hidden" name="rol_id" value={rol_id} />
+            {rolSoloLectura ? (
+              <div className="mt-1">
+                {rolesParaSelector.map((r) => renderRolCard(r))}
+              </div>
+            ) : (
+              <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {rolesParaSelector.map((r) => renderRolCard(r))}
+              </div>
+            )}
           </div>
 
           <div className="border border-gray-200 dark:border-neutral-700 rounded-md bg-gray-50 dark:bg-neutral-800/60 py-2 px-2">
