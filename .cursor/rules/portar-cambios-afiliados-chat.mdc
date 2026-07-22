@@ -1,0 +1,381 @@
+---
+description: Resumen de cambios del chat (roles SEDE/EMPLEADO, pestañas, miembros, Swal, carnet, emails, meta, menú acciones) para replicar en otro proyecto
+alwaysApply: false
+---
+
+# Portar cambios — sesión afiliados / roles / UI
+
+Guía para aplicar en otro repo los mismos cambios hechos en este chat del proyecto `afiliadosclm`.
+
+## Dependencias
+
+```bash
+pnpm add xlsx
+# ya usados: sweetalert2, html-to-image, framer-motion
+```
+
+---
+
+## 1. Usuario de acceso vacío al editar perfil
+
+**Problema:** Al editar, nombres/rol cargaban pero “Usuario de acceso” quedaba vacío.
+
+**Causa:** En `/api/dashboard` (y actions similares) el email iba hardcodeado como `""` porque no se leía de Auth.
+
+**Fix:**
+
+- Usar `getCachedAuthUsers()` (`listUsers` admin + caché 5 min) y mapear `email` por `user_id`.
+- Archivos: `app/api/dashboard/route.ts`, `components/afiliados/actions/dashboard.ts`, `components/afiliados/actions/usuarios.ts`.
+- En `SignForm.tsx` el usuario se muestra como local-part: `email.replace(/@.*$/, "")`.
+- En `app/api/users/ver/route.ts` devolver `nombres` / `apellidos` (no solo `nombre`) para `EditarUsuarioForm`.
+
+---
+
+## 2. SweetAlert: Maximum call stack size exceeded
+
+**Archivo:** `lib/swal.ts`
+
+**Causa:** `Object.assign(Swal, { fire })` hacía que `fire` se llamara a sí mismo.
+
+**Fix:** Guardar referencia al fire nativo **antes** del override:
+
+```ts
+const nativeFire = SwalBase.fire.bind(SwalBase);
+// dentro del wrapper: return nativeFire(withTheme(...));
+```
+
+---
+
+## 3. Rol SEDE: ver pestañas, solo lectura
+
+**Reglas de negocio:**
+
+| Rol                 | Vista                                             |
+| ------------------- | ------------------------------------------------- |
+| SUPER / ADMIN       | Todas las pestañas + editar                       |
+| SEDE                | Sede, Líderes, Empleados, Miembros — **solo ver** |
+| Resto (LIDER, etc.) | Meta + su célula                                  |
+
+**Detección SEDE:** rol `SEDE` **o** `esUsuarioSede({ nombres, apellidos, email, rol })` (nombre “Sede …”, email `sede@…`).
+
+**Solo lectura SEDE:**
+
+- `Lideres.tsx`: menú editar/eliminar solo si `ADMIN/SUPER/DOCUMENTADOR` (no SEDE).
+- `Celula.tsx`: ocultar “Añadir integrante” si rol sesión `SEDE`.
+- `Tabla.tsx`: ocultar menú Editar/Eliminar si `SEDE`.
+- Pasar `rolUsuarioSesion={esSedeSesion ? "SEDE" : rol}` cuando se detecta sede por nombre.
+
+**Perfil no encontrado:** si el usuario no está en `allUsers` (RLS/`roles!inner`), armar fallback desde `session` y usar como `miPerfilGlobal` / `sedeUsuario`.
+
+---
+
+## 4. Rol EMPLEADO (antes TRABAJADOR)
+
+El filtro de UI usaba `TRABAJADOR` pero en BD el rol es `EMPLEADO`.
+
+```ts
+const esRolEmpleado = (rol?: string | null) => {
+  const r = (rol || "").toUpperCase();
+  return r === "EMPLEADO" || r === "TRABAJADOR"; // compat
+};
+```
+
+Usar en:
+
+- Lista pestaña Empleados (`Ver.tsx`)
+- Agrupación en `AfiliadosGeneral.tsx`
+- Contadores / meta
+
+**Label UI:** “Empleado(s)” no “Trabajadores”.
+
+---
+
+## 5. Pestañas (`Ver.tsx`)
+
+**Orden:** Sede → Líderes → Empleados → Miembros → Administrativos → Mensajes
+
+**Contadores en el label:**
+
+| Pestaña         | Contador                                     |
+| --------------- | -------------------------------------------- |
+| Sede            | `conteoAfiliados` del usuario sede           |
+| Líderes         | # usuarios rol `LIDER`                       |
+| Empleados       | # usuarios rol `EMPLEADO`                    |
+| Miembros        | total afiliados (sede + líderes + empleados) |
+| Administrativos | # usuarios ADMIN/SUPER                       |
+
+**Iconos:** medalla (`PiMedalDuotone` / `Medal`) para líderes; no corona.
+
+**Línea bajo pestañas:**
+
+- Grosor igual al borde de pestaña (`3px` móvil / `4px` desktop); línea inferior `3px` / `4px` (`h-[3px]` / `md:h-1`).
+- Color = tema de la pestaña activa.
+- Animación: crece desde el **centro de la pestaña clicada** (`transformOrigin` medido con refs), no desde el medio de la barra.
+- Borde de pestaña activa con `layoutId` (framer-motion) para deslizar orilla.
+
+**Contenido:** `AnimatePresence` + slide horizontal según dirección del cambio de tab.
+
+**Móvil (sin scroll horizontal):**
+
+- Grid en filas de 4: `grid-cols-4` (icono arriba + label abajo, más grandes: `text-[11px]`, `py-2.5`, icon `w-4`).
+- Desktop: `md:flex` fila única.
+- Header móvil: búsqueda junto a “Gestión de Datos”; **Estadísticas** + **Nuevo** en una sola fila a ancho completo (`flex-1` cada uno).
+
+---
+
+## 6. Miembros — `AfiliadosGeneral.tsx`
+
+**Filtros:** Todos (celeste/sky) | Sede | Líderes | Empleado
+
+**Flujo:**
+
+1. Tabla de líderes del grupo (No., Nombre, Miembros), orden **alfabético**.
+2. Click → tabla de miembros de ese líder (animación suave framer-motion).
+3. “Todos” → listado plano de todos los afiliados A–Z (columnas: nombre, dpi, tel, edad, lugar, líder, grupo).
+
+**Excel (`xlsx`):** botón “Descargar Excel” con 4 hojas: `Todos`, `Sede`, `Lideres`, `Empleados`.
+
+---
+
+## 7. Vista lista/tabla en cada célula (`Celula.tsx` + `Tabla.tsx`)
+
+Dentro de **cada célula** (pestaña Sede, click a un líder/empleado, o vista embebida) el usuario puede alternar cómo se ven los integrantes:
+
+| Modo         | UI                         | Default |
+| ------------ | -------------------------- | ------- |
+| **Tarjetas** | Grid de cards (como antes) | Sí      |
+| **Lista**    | Tabla densa (filas)        | No      |
+
+**En `Celula.tsx`:**
+
+- Estado: `formatoVista: FormatoVista` (`"tarjetas" | "tabla"`), default `"tarjetas"`.
+- Toggle junto al buscador (segmented control):
+  - Icono `LayoutGrid` → Tarjetas
+  - Icono `Table2` → Lista (label “Lista”)
+- Pasar a `<Tabla formato={formatoVista} ... />`.
+
+**En `Tabla.tsx`:**
+
+```ts
+export type FormatoVista = "tarjetas" | "tabla";
+// prop opcional: formato?: FormatoVista  (default "tarjetas")
+```
+
+- Si `formato === "tabla"`: renderizar `<table>` con columnas  
+  **No. | Nombre | DPI | Teléfono | Edad | Sexo | Ubicación | Padrón | Acciones**  
+  (Acciones solo si puede editar/eliminar; SEDE no ve esa columna).
+- Si `formato === "tarjetas"`: grid de tarjetas con el mismo menú de acciones / carnet / teléfono.
+- Mismo orden de afiliados en ambos modos (líder primero, luego por fecha/nombre).
+- Contacto reutilizable: `TelefonoInline` / footer de llamada-WhatsApp-carnet.
+
+**Nota:** Aplica a todas las células (Sede, líderes, empleados) porque todas usan `Celula` → `Tabla`.
+
+**Badge de líder en `Tabla.tsx`:** usar **medalla** (`Medal` / `PiMedalDuotone`), **no corona** (`Crown`).
+
+---
+
+## 8. Familia embebida en la célula (`Celula.tsx` + `Tabla.tsx`)
+
+**Problema:** “Familia” / añadir familiar abría un modal a pantalla completa (y a veces salía mal posicionado abajo).
+
+**Fix:**
+
+- **No modal full-screen.** La vista de familia se muestra **dentro de la célula** (mismo panel del líder).
+- Estado en `Celula`: `titularFamilia: Afiliado | null`.
+- `Tabla` emite `onVerFamilia(titular)` en lugar de abrir `Dialog`.
+- UI embebida:
+  - Botón **“Volver a miembros”** (`ArrowLeft`).
+  - Cabecera “Familia de {nombre}” + **“Añadir Familiar”** (oculto si SEDE).
+  - Misma `Tabla` con `isFamilyView` y afiliados = titular + `familiar_de === titular.id`.
+- Toggle Tarjetas/Lista sigue disponible en la vista familia.
+- Al cambiar de pestaña (Miembros / Estadísticas / Mensajes) limpiar `titularFamilia`.
+
+**Transición suave (framer-motion):**
+
+```tsx
+<AnimatePresence mode="wait" initial={false}>
+  {titularFamilia ? (
+    <motion.div
+      key={`familia-${titularFamilia.id}`}
+      initial={{ opacity: 0, x: 36 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -28 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+    >
+      …
+    </motion.div>
+  ) : (
+    <motion.div
+      key="miembros-lista"
+      initial={{ opacity: 0, x: -36 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 28 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+    >
+      …
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+Entrar a familia: slide desde la derecha. Volver a miembros: slide desde la izquierda.
+
+---
+
+## 9. Carnet — descarga en móvil (`CarnetAfiliacion.tsx`)
+
+**Problema:** En iPhone/Android `<a download>` con dataURL no hace nada.
+
+**Fix:**
+
+1. Clonar el nodo del carnet off-screen a tamaño fijo (mismo aspect CR80) y capturar con `html-to-image` → se ve igual que el modal.
+2. Esperar carga de imágenes (`crossOrigin="anonymous"` en logo).
+3. Guardar:
+   - Móvil + `navigator.canShare({ files })` → Web Share (Guardar en Fotos).
+   - iOS sin share → abrir imagen en ventana nueva + “mantener pulsado → Guardar”.
+   - Desktop → blob + `<a download>` clásico.
+4. Toast de error/éxito; ignorar `AbortError` si el usuario cancela el share.
+
+---
+
+## 10. Meta general de afiliación (una sola, grande)
+
+**Problema:** Había dos barras de “Meta general” (una en `MetaGeneral` / `Ver.tsx` y otra duplicada dentro de `Lideres.tsx`).
+
+**Fix:**
+
+- **Dejar solo** la de arriba: `components/afiliados/MetaGeneral.tsx` (usada en `Ver.tsx`).
+- Hacerla **más grande**: tipografía `text-sm`/`md:text-xl`–`2xl`, barra `h-5`/`md:h-7`, contenedor con borde/padding (`px-4 py-4 md:px-6`).
+- Mostrar `total / objetivo (xx%)` y segmentos Sede (azul) / Líderes (naranja) / Empleados (violeta).
+- **Quitar** de `Lideres.tsx` la meta general duplicada y la fila “Líderes registrados / Empadronados TSE”.
+- Ya no hace falta prop `hideMeta` en `Lideres`.
+
+---
+
+## 11. Menú ⋮ Editar / Eliminar en filas (`Lideres.tsx`)
+
+**Problema:** Botones “Editar” y “Eliminar” a la vista en cada fila (líderes, empleados, administrativos).
+
+**Fix:** Reemplazar por **tres puntos verticales** (`MoreVertical`) + `DropdownMenu`:
+
+- Trigger: icono ⋮.
+- Opciones: **Editar**; **Eliminar** solo si `ADMIN/SUPER` (y misma regla de no borrar con afiliados).
+- Visible en desktop y móvil (sin acordeón de acciones).
+- Solo si `puedeGestionarUsuarios` (`ADMIN/SUPER/DOCUMENTADOR`); SEDE no ve el menú.
+
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <button … aria-label="Acciones"><MoreVertical /></button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent>
+    <DropdownMenuItem onClick={() => onEditar(lider)}>Editar</DropdownMenuItem>
+    {esAdminOSuper && (
+      <DropdownMenuItem onClick={…}>Eliminar</DropdownMenuItem>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+---
+
+## 12. Botón “Nuevo” — crear Líder / Empleado / Admin / Super (`Ver.tsx` + `SignForm.tsx`)
+
+**Problema:** El botón decía “Nuevo Líder” y solo abría el modal de creación con rol LIDER editable.
+
+**Fix:**
+
+- Label del botón: **“Nuevo”** (con `UserPlus` + `ChevronDown`).
+- **Visibilidad del botón:** solo `SUPER` y `ADMIN` (`puedeVerBotonNuevo`). No DOCUMENTADOR.
+- `DropdownMenu` hacia abajo con opciones:
+  - **Líder** → modal con rol `LIDER` **fijo**.
+  - **Empleado** → modal con rol `EMPLEADO` **fijo**.
+  - **Admin** → modal con rol `ADMIN` **fijo**.
+  - **Super** → modal con rol `SUPER` **fijo** — **solo si la sesión es SUPER** (`puedeCrearRolSuper`). ADMIN no ve esta opción.
+- Estado en `Ver.tsx`: `rolCreacionInicial: "LIDER" | "EMPLEADO" | "ADMIN" | "SUPER" | null`.
+- Handler: `handleOpenCreateUsuarioModal(rol)` (bloquear `SUPER` si no es sesión SUPER).
+- Pasar a `SignupForm` la prop `rolInicial={rolCreacionInicial}`.
+- En `SignForm.tsx` (igual que `modoCrearSede`):
+  - Preseleccionar el rol según `rolInicial`.
+  - `rolFijoDesdeMenu` → selector de rol **disabled**.
+  - `rolesParaSelector` solo incluye ese rol (no se puede cambiar a otro).
+  - `SUPER` en selector solo si `esSuperSesion`.
+  - **Importante:** un `<select disabled>` no entra en `FormData`. En `handleSubmit` hacer `formData.set("rol_id", rol_id)` (y nombres/apellidos) desde el state, o el server responde “Todos los campos son obligatorios.”
+- Título del modal según `rolInicial`.
+- Limpiar `rolCreacionInicial` al cerrar / éxito / editar / crear sede.
+
+**Editar usuario de acceso (email):**
+
+- En `updateUsuarioAction`: actualizar Auth con `email` + `email_confirm: true` (admin).
+- Normalizar: si llega sin `@`, agregar `@app.com`.
+- Tras create/update/delete: `invalidateCachedAuthUsers()` — si no, el dashboard sigue mostrando el email viejo (caché 5 min de `getCachedAuthUsers`).
+
+```tsx
+{puedeVerBotonNuevo && (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button …><UserPlus /> Nuevo <ChevronDown /></Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("LIDER")}>
+        Líder
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("EMPLEADO")}>
+        Empleado
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("ADMIN")}>
+        Admin
+      </DropdownMenuItem>
+      {puedeCrearRolSuper && (
+        <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("SUPER")}>
+          Super
+        </DropdownMenuItem>
+      )}
+    </DropdownMenuContent>
+  </DropdownMenu>
+)}
+```
+
+---
+
+## 13. Archivos tocados (checklist port)
+
+```
+lib/swal.ts
+app/api/dashboard/route.ts
+app/api/users/ver/route.ts
+components/afiliados/actions/dashboard.ts
+components/afiliados/actions/usuarios.ts
+components/afiliados/actions/cache.ts          # getCachedAuthUsers (si no existe)
+components/afiliados/Ver.tsx                   # pestañas; Nuevo solo ADMIN/SUPER; opción Super solo SUPER
+components/afiliados/Lideres.tsx               # menú ⋮; sin meta duplicada
+components/afiliados/Celula.tsx                # toggle Tarjetas/Lista; familia embebida + AnimatePresence
+components/afiliados/Tabla.tsx                 # FormatoVista; onVerFamilia; badge Medal
+components/afiliados/contacto.tsx              # tel / DPI helpers (si aplica)
+components/afiliados/AfiliadosGeneral.tsx
+components/afiliados/MetaGeneral.tsx           # meta única, más grande
+components/afiliados/esquemas.ts               # esUsuarioSede
+components/afiliados/CarnetAfiliacion.tsx
+components/admin/sign-up/SignForm.tsx          # rolInicial fijo LIDER|EMPLEADO|ADMIN|SUPER
+package.json                                   # + xlsx
+```
+
+---
+
+## 14. Criterios de aceptación al portar
+
+- [ ] Editar líder/empleado muestra usuario de acceso (sin `@dominio`).
+- [ ] Swal no crashea al actualizar.
+- [ ] Usuario SEDE ve Sede / Líderes / Empleados / Miembros; no edita ni añade.
+- [ ] Usuario con rol `EMPLEADO` aparece en pestaña Empleados.
+- [ ] Contadores en pestañas correctos; orden con Mensajes al final.
+- [ ] Línea y borde de pestaña animados desde la pestaña elegida.
+- [ ] En teléfono: pestañas `grid-cols-4` más grandes; búsqueda junto a título; Estadísticas/Nuevo en una fila a ancho completo.
+- [ ] Miembros: Todos + tablas + Excel 4 hojas.
+- [ ] En cada célula: toggle **Tarjetas / Lista**; la lista muestra tabla con No., Nombre, DPI, Tel, Edad, Sexo, Ubicación, Padrón (± Acciones).
+- [ ] Familia: dentro de la célula (no modal full-screen); “Volver a miembros” + “Añadir Familiar”; transición suave (slide) al entrar/salir.
+- [ ] Badge de líder: medalla (`Medal`), no corona.
+- [ ] Botón **Nuevo** solo para ADMIN/SUPER; opciones Líder / Empleado / Admin (rol fijo); **Super** solo lo ve SUPER.
+- [ ] Carnet: en móvil se puede guardar/compartir imagen igual al modal.
+- [ ] Solo una **Meta general** arriba (grande); no duplicada en pestaña Líderes.
+- [ ] En filas de líderes/empleados/admins: ⋮ con Editar / Eliminar (no botones sueltos).

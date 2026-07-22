@@ -14,6 +14,7 @@ export function calcularNivelCompromiso(
   metaCelula: number,
   metaMinima: number,
   nombreLider?: string,
+  etiquetaRol = "Líder",
 ): NivelCompromisoVisual {
   const objetivo = metaCelula;
 
@@ -57,7 +58,7 @@ export function calcularNivelCompromiso(
       textoColor: "text-red-600 dark:text-red-400",
       bordeCard: "border-red-500 dark:border-red-500",
       gifUrl: "/gif/afiliados/gif2.gif",
-      mensaje: "🎉 ¡Líder registrado! Añade a tus familiares y amigos.",
+      mensaje: `🎉 ¡${etiquetaRol} registrado! Añade a tus familiares y amigos.`,
     };
   }
 
@@ -68,7 +69,7 @@ export function calcularNivelCompromiso(
       textoColor: "text-gray-500 dark:text-gray-400",
       bordeCard: "border-gray-400 dark:border-neutral-500",
       gifUrl: "/gif/afiliados/gif1.gif",
-      mensaje: `👋 ¡Hola ${nombreLider ?? "Líder"}! Inicia tu grupo registrándote a ti mismo.`,
+      mensaje: `👋 ¡Hola ${nombreLider ?? etiquetaRol}! Inicia tu grupo registrándote a ti mismo.`,
     };
   }
 

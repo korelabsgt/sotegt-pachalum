@@ -4,10 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { getUserDataAction } from "./actions";
 
 export default function useUserData() {
-  const { data, isPending } = useQuery({
+  const { data, isPending, isFetching } = useQuery({
     queryKey: ["user-session"],
     queryFn: getUserDataAction,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   return {
@@ -17,6 +20,6 @@ export default function useUserData() {
     apellidos: data?.apellidos || "",
     rol: data?.rol || "",
     rol_id: data?.rol_id ?? null,
-    cargando: isPending,
+    cargando: isPending || (isFetching && !data),
   };
 }

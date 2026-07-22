@@ -1,6 +1,5 @@
 "use client";
 
-import { signOutAction } from "@/app/actions/usuarios";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import useUserData from "@/hooks/sesion/useUserData";
@@ -10,12 +9,32 @@ import Swal from "sweetalert2";
 import ConfiguracionModal from "./ConfiguracionModal";
 import NotificationBell from "./NotificationBell";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/utils/supabase/client";
+import { useCelula } from "@/contexts/celula-context";
+import { clearCelulaSession } from "@/lib/celula-session";
 
 const headerIconBtn =
   "group h-10 w-10 p-0 rounded-full shrink-0 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100/50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800/50 transition-colors";
 
+async function limpiarEstadoSesionCliente(
+  queryClient: ReturnType<typeof useQueryClient>,
+  clearCelula: () => void,
+) {
+  queryClient.clear();
+  clearCelula();
+  clearCelulaSession();
+  try {
+    sessionStorage.clear();
+  } catch {}
+  const supabase = createClient();
+  await supabase.auth.signOut({ scope: "global" });
+}
+
 export default function AuthButton() {
   const { email, nombres, apellidos, rol, cargando } = useUserData();
+  const queryClient = useQueryClient();
+  const { clearCelula } = useCelula();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
 
@@ -46,8 +65,12 @@ export default function AuthButton() {
         popup: isDark ? "swal-dark-popup" : "swal-light-popup",
         title: isDark ? "swal-dark-title" : "swal-light-title",
         htmlContainer: isDark ? "swal-dark-html" : "swal-light-html",
-        confirmButton: isDark ? "swal-btn-outline-red" : "swal-btn-outline-red-light",
-        cancelButton: isDark ? "swal-btn-outline-blue" : "swal-btn-outline-blue-light",
+        confirmButton: isDark
+          ? "swal-btn-outline-red"
+          : "swal-btn-outline-red-light",
+        cancelButton: isDark
+          ? "swal-btn-outline-blue"
+          : "swal-btn-outline-blue-light",
         actions: "swal-actions-spaced",
       },
     });
@@ -56,12 +79,13 @@ export default function AuthButton() {
 
     setCerrandoSesion(true);
     try {
-      await signOutAction();
-    } catch (err: unknown) {
-      const mensaje = err instanceof Error ? err.message : String(err);
-      if (!mensaje.includes("NEXT_REDIRECT")) {
-        setCerrandoSesion(false);
-      }
+      await limpiarEstadoSesionCliente(queryClient, clearCelula);
+    } catch {
+      queryClient.clear();
+      clearCelula();
+      clearCelulaSession();
+    } finally {
+      window.location.href = "/sign-in";
     }
   };
 
@@ -102,9 +126,7 @@ export default function AuthButton() {
           >
             <RefreshCw
               className={`h-5 w-5 transition-transform duration-500 ${
-                isRefreshing
-                  ? "animate-spin"
-                  : "group-hover:rotate-180"
+                isRefreshing ? "animate-spin" : "group-hover:rotate-180"
               }`}
             />
           </Button>

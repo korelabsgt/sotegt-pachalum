@@ -1,43 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
-  Loader2,
-  Search,
-  MapPin,
-  Pencil,
-  Trash2,
-  X,
-} from "lucide-react";
-import Swal from "sweetalert2";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  showSuccessToast,
-  showErrorToast,
-  showWarningToast,
-} from "@/lib/toast";
-import useUserData from "@/hooks/sesion/useUserData";
-import {
-  obtenerConfiguracionAction,
-  actualizarConfiguracionAction,
-  actualizarConfiguracionGeneralAction,
-} from "./actions/configuracion";
-import {
-  obtenerLugaresAction,
-  obtenerSectoresAction,
+  actualizarLugarAction,
+  actualizarSectorAction,
   crearLugarAction,
   crearSectorAction,
-  actualizarSectorAction,
-  eliminarSectorAction,
-  actualizarLugarAction,
   eliminarLugarAction,
+  eliminarSectorAction,
+  obtenerLugaresAction,
+  obtenerSectoresAction,
   type Lugar,
   type Sector,
 } from "@/components/afiliados/forms/afiliados/catalogos";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import useUserData from "@/hooks/sesion/useUserData";
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from "@/lib/toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Check,
+  Loader2,
+  MapPin,
+  Pencil,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
+import {
+  actualizarConfiguracionAction,
+  actualizarConfiguracionGeneralAction,
+  obtenerConfiguracionAction,
+} from "./actions/configuracion";
 
 interface Props {
   showMetas?: boolean;
@@ -638,7 +638,7 @@ export default function ConfiguracionSistema({
                   {guardando ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "Guardar Metas"
+                    "Guardar"
                   )}
                 </Button>
               </div>

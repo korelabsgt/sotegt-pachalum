@@ -23,6 +23,8 @@ interface SignupFormProps {
   isModal?: boolean;
   initialData?: any;
   rolSesion?: string;
+  modoCrearSede?: boolean;
+  rolInicial?: "LIDER" | "EMPLEADO" | "ADMIN" | "SUPER" | null;
 }
 
 export function SignupForm({
@@ -31,6 +33,8 @@ export function SignupForm({
   isModal = false,
   initialData,
   rolSesion,
+  modoCrearSede = false,
+  rolInicial = null,
 }: SignupFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
@@ -38,7 +42,9 @@ export function SignupForm({
   const rolUsuarioSesion = rolSesion ?? rolHook;
 
   const modoSimulacion =
-    !isEdit && rolUsuarioSesion?.toUpperCase() === "DOCUMENTADOR";
+    !isEdit &&
+    !modoCrearSede &&
+    rolUsuarioSesion?.toUpperCase() === "DOCUMENTADOR";
 
   const [simulacionLista, setSimulacionLista] = useState(false);
   const mostrarSkeleton = modoSimulacion && !simulacionLista;
@@ -47,10 +53,16 @@ export function SignupForm({
   const [rolesDisponibles, setRolesDisponibles] = useState<RolDisponible[]>([]);
   const [showPasswordAccordion, setShowPasswordAccordion] = useState(!isEdit);
 
-  const [nombres, setNombres] = useState(initialData?.nombres || "");
-  const [apellidos, setApellidos] = useState(initialData?.apellidos || "");
+  const [nombres, setNombres] = useState(
+    modoCrearSede ? "Sede" : initialData?.nombres || "",
+  );
+  const [apellidos, setApellidos] = useState(
+    modoCrearSede ? "Central" : initialData?.apellidos || "",
+  );
   const [email, setEmail] = useState(
-    initialData?.email?.replace(/@.*$/, "") || "",
+    modoCrearSede
+      ? "sede"
+      : initialData?.email?.replace(/@.*$/, "") || "",
   );
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -119,17 +131,44 @@ export function SignupForm({
       if (r) {
         setRolesDisponibles(r);
         if (!initialData?.rol_id) {
-          const rolLider = r.find(
-            (role) =>
-              role.nombre.toUpperCase() === "LIDER" ||
-              role.nombre.toUpperCase() === "LÍDER",
-          );
-          if (rolLider) setRolId(rolLider.id.toString());
+          if (modoCrearSede) {
+            const rolSede = r.find(
+              (role) =>
+                role.id === 5 || role.nombre.toUpperCase() === "SEDE",
+            );
+            if (rolSede) setRolId(rolSede.id.toString());
+          } else if (rolInicial === "EMPLEADO") {
+            const rolEmpleado = r.find((role) => {
+              const n = role.nombre.toUpperCase();
+              return n === "EMPLEADO" || n === "TRABAJADOR";
+            });
+            if (rolEmpleado) setRolId(rolEmpleado.id.toString());
+          } else if (rolInicial === "ADMIN") {
+            const rolAdmin = r.find(
+              (role) => role.nombre.toUpperCase() === "ADMIN",
+            );
+            if (rolAdmin) setRolId(rolAdmin.id.toString());
+          } else if (
+            rolInicial === "SUPER" &&
+            rolUsuarioSesion?.toUpperCase() === "SUPER"
+          ) {
+            const rolSuper = r.find(
+              (role) => role.nombre.toUpperCase() === "SUPER",
+            );
+            if (rolSuper) setRolId(rolSuper.id.toString());
+          } else if (rolInicial === "LIDER" || !rolInicial) {
+            const rolLider = r.find(
+              (role) =>
+                role.nombre.toUpperCase() === "LIDER" ||
+                role.nombre.toUpperCase() === "LÍDER",
+            );
+            if (rolLider) setRolId(rolLider.id.toString());
+          }
         }
       }
     };
     fetchDatos();
-  }, [initialData]);
+  }, [initialData, modoCrearSede, rolInicial, rolUsuarioSesion]);
 
   useEffect(() => {
     if (!modoSimulacion) return;
@@ -147,9 +186,38 @@ export function SignupForm({
   }, [modoSimulacion]);
 
   const esSuperSesion = rolUsuarioSesion?.toUpperCase() === "SUPER";
-  const rolesParaSelector = rolesDisponibles.filter(
-    (r) => esSuperSesion || r.nombre !== "SUPER",
-  );
+  const rolFijoDesdeMenu =
+    Boolean(rolInicial) &&
+    !isEdit &&
+    !(rolInicial === "SUPER" && !esSuperSesion);
+  const editandoSede =
+    isEdit &&
+    ((initialData?.rol || "").toUpperCase() === "SEDE" ||
+      Number(initialData?.rol_id) === 5);
+  const rolesParaSelector = rolesDisponibles.filter((r) => {
+    const nombre = r.nombre.toUpperCase();
+    if (!esSuperSesion && nombre === "SUPER") return false;
+    if (modoCrearSede) return nombre === "SEDE" || r.id === 5;
+    if (rolFijoDesdeMenu) {
+      if (rolInicial === "EMPLEADO") {
+        return nombre === "EMPLEADO" || nombre === "TRABAJADOR";
+      }
+      if (rolInicial === "ADMIN") return nombre === "ADMIN";
+      if (rolInicial === "SUPER") return nombre === "SUPER";
+      return nombre === "LIDER" || nombre === "LÍDER";
+    }
+    if (editandoSede) return true;
+    return nombre !== "SEDE";
+  });
+
+  const tituloCreacion =
+    rolInicial === "EMPLEADO"
+      ? "Nuevo Usuario Empleado"
+      : rolInicial === "ADMIN"
+        ? "Nuevo Usuario Admin"
+        : rolInicial === "SUPER"
+          ? "Nuevo Usuario Super"
+          : "Nuevo Usuario Líder";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -163,9 +231,15 @@ export function SignupForm({
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const finalEmail = `${email.trim()}@app.com`;
+    const localPart = email.trim().replace(/@.*$/, "").replace(/\s/g, "");
+    const finalEmail = `${localPart}@app.com`;
     formData.set("email", finalEmail);
-    if (isEdit) formData.append("id", initialData.user_id || initialData.id);
+    formData.set("nombres", nombres.trim());
+    formData.set("apellidos", apellidos.trim());
+    formData.set("rol_id", rol_id);
+    if (isEdit) {
+      formData.set("id", String(initialData.user_id || initialData.id || ""));
+    }
 
     let result;
     if (isEdit) {
@@ -191,9 +265,11 @@ export function SignupForm({
         <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400">
           {isEdit
             ? "Editar Perfil de Acceso"
-            : modoSimulacion
-              ? "Nuevo Usuario Líder (Simulación)"
-              : "Nuevo Usuario Líder"}
+            : modoCrearSede
+              ? "Crear Usuario Sede"
+              : modoSimulacion
+                ? `${tituloCreacion} (Simulación)`
+                : tituloCreacion}
         </h3>
         <button
           type="button"
@@ -228,6 +304,7 @@ export function SignupForm({
                 name="nombres"
                 value={nombres}
                 onChange={(e) => setNombres(e.target.value)}
+                readOnly={modoCrearSede}
                 className="h-12 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-neutral-600"
               />
             </div>
@@ -239,6 +316,7 @@ export function SignupForm({
                 name="apellidos"
                 value={apellidos}
                 onChange={(e) => setApellidos(e.target.value)}
+                readOnly={modoCrearSede}
                 className="h-12 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-neutral-600"
               />
             </div>
@@ -255,6 +333,7 @@ export function SignupForm({
               onChange={(e) =>
                 setEmail(e.target.value.replace(/@.*$/, "").replace(/\s/g, ""))
               }
+              readOnly={modoCrearSede}
               placeholder="Ingrese su usuario"
               className="h-12 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-neutral-600"
             />
@@ -268,7 +347,8 @@ export function SignupForm({
               name="rol_id"
               value={rol_id}
               onChange={(e) => setRolId(e.target.value)}
-              className="w-full border border-gray-300 dark:border-neutral-600 rounded h-12 px-3 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
+              disabled={modoCrearSede || rolFijoDesdeMenu}
+              className="w-full border border-gray-300 dark:border-neutral-600 rounded h-12 px-3 text-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <option value="">Seleccione un rol...</option>
               {rolesParaSelector.map((r) => (
@@ -336,9 +416,11 @@ export function SignupForm({
               ? "Procesando..."
               : isEdit
                 ? "Actualizar Datos"
-                : modoSimulacion
-                  ? "Simular Creación"
-                  : "Crear Acceso"}
+                : modoCrearSede
+                  ? "Crear Sede"
+                  : modoSimulacion
+                    ? "Simular Creación"
+                    : "Crear Acceso"}
           </Button>
         </form>
       )}
