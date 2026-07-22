@@ -1,15 +1,29 @@
 "use client";
 
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion, LayoutGroup } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
 import {
   Dialog,
   Transition,
   TransitionChild,
   DialogPanel,
 } from "@headlessui/react";
-import { Megaphone, X, Search, Check, Users, UserPlus } from "lucide-react";
+import {
+  Megaphone,
+  X,
+  Search,
+  Check,
+  Users,
+  UserPlus,
+  Globe2,
+  Medal,
+  Briefcase,
+  Target,
+  UserRoundSearch,
+  ArrowLeft,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/lib/toast";
@@ -19,78 +33,168 @@ import MensajesEnviados, {
   useMensajesFiltros,
 } from "./MensajesEnviados";
 
-const PUBLICOS = [
+type PublicoTheme = {
+  border: string;
+  ring: string;
+  bg: string;
+  text: string;
+  iconBg: string;
+  hover: string;
+};
+
+type PublicoItem = {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  theme: PublicoTheme;
+};
+
+type PublicoGrupo = {
+  id: string;
+  titulo: string;
+  cols: string;
+  items: PublicoItem[];
+};
+
+const GRUPOS_PUBLICO: PublicoGrupo[] = [
   {
-    value: "Todos",
-    label: "Todos (Global)",
-    desc: "Todos los usuarios",
-    theme: {
-      border: "border-slate-500",
-      ring: "ring-slate-500",
-      bg: "bg-slate-50 dark:bg-slate-950/40",
-      text: "text-slate-700 dark:text-slate-300",
-      hover: "hover:border-slate-400 dark:hover:border-slate-500",
-    },
+    id: "general",
+    titulo: "General",
+    cols: "grid-cols-1 sm:grid-cols-2",
+    items: [
+      {
+        value: "Todos",
+        label: "Todos",
+        icon: Globe2,
+        theme: {
+          border: "border-slate-500",
+          ring: "ring-slate-500",
+          bg: "bg-slate-50 dark:bg-slate-950/40",
+          text: "text-slate-700 dark:text-slate-300",
+          iconBg: "bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+          hover: "hover:border-slate-400 dark:hover:border-slate-500",
+        },
+      },
+    ],
   },
   {
-    value: "Alto",
-    label: "Alto",
-    desc: "Superaron la meta",
-    theme: {
-      border: "border-green-500",
-      ring: "ring-green-500",
-      bg: "bg-green-50 dark:bg-green-950/40",
-      text: "text-green-700 dark:text-green-300",
-      hover: "hover:border-green-400 dark:hover:border-green-600",
-    },
+    id: "roles",
+    titulo: "Por rol",
+    cols: "grid-cols-2",
+    items: [
+      {
+        value: "Lideres",
+        label: "Líderes",
+        icon: Medal,
+        theme: {
+          border: "border-orange-500",
+          ring: "ring-orange-500",
+          bg: "bg-orange-50 dark:bg-orange-950/40",
+          text: "text-orange-700 dark:text-orange-300",
+          iconBg:
+            "bg-orange-100 dark:bg-orange-950/70 text-orange-600 dark:text-orange-400",
+          hover: "hover:border-orange-400 dark:hover:border-orange-600",
+        },
+      },
+      {
+        value: "Empleados",
+        label: "Empleados",
+        icon: Briefcase,
+        theme: {
+          border: "border-violet-500",
+          ring: "ring-violet-500",
+          bg: "bg-violet-50 dark:bg-violet-950/40",
+          text: "text-violet-700 dark:text-violet-300",
+          iconBg:
+            "bg-violet-100 dark:bg-violet-950/70 text-violet-600 dark:text-violet-400",
+          hover: "hover:border-violet-400 dark:hover:border-violet-600",
+        },
+      },
+    ],
   },
   {
-    value: "Cumple",
-    label: "Cumple",
-    desc: "Llegaron a la meta exacta",
-    theme: {
-      border: "border-blue-500",
-      ring: "ring-blue-500",
-      bg: "bg-blue-50 dark:bg-blue-950/40",
-      text: "text-blue-700 dark:text-blue-300",
-      hover: "hover:border-blue-400 dark:hover:border-blue-600",
-    },
+    id: "nivel",
+    titulo: "Por nivel de compromiso",
+    cols: "grid-cols-2 sm:grid-cols-4",
+    items: [
+      {
+        value: "Bajo",
+        label: "Bajo",
+        icon: Target,
+        theme: {
+          border: "border-red-500",
+          ring: "ring-red-500",
+          bg: "bg-red-50 dark:bg-red-950/40",
+          text: "text-red-700 dark:text-red-300",
+          iconBg:
+            "bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400",
+          hover: "hover:border-red-400 dark:hover:border-red-600",
+        },
+      },
+      {
+        value: "Medio",
+        label: "Medio",
+        icon: Target,
+        theme: {
+          border: "border-yellow-500",
+          ring: "ring-yellow-500",
+          bg: "bg-yellow-50 dark:bg-yellow-950/40",
+          text: "text-yellow-700 dark:text-yellow-300",
+          iconBg:
+            "bg-yellow-100 dark:bg-yellow-950/70 text-yellow-600 dark:text-yellow-400",
+          hover: "hover:border-yellow-400 dark:hover:border-yellow-600",
+        },
+      },
+      {
+        value: "Cumple",
+        label: "Cumple",
+        icon: Target,
+        theme: {
+          border: "border-blue-500",
+          ring: "ring-blue-500",
+          bg: "bg-blue-50 dark:bg-blue-950/40",
+          text: "text-blue-700 dark:text-blue-300",
+          iconBg:
+            "bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400",
+          hover: "hover:border-blue-400 dark:hover:border-blue-600",
+        },
+      },
+      {
+        value: "Alto",
+        label: "Alto",
+        icon: Target,
+        theme: {
+          border: "border-green-500",
+          ring: "ring-green-500",
+          bg: "bg-green-50 dark:bg-green-950/40",
+          text: "text-green-700 dark:text-green-300",
+          iconBg:
+            "bg-green-100 dark:bg-green-950/70 text-green-600 dark:text-green-400",
+          hover: "hover:border-green-400 dark:hover:border-green-600",
+        },
+      },
+    ],
   },
   {
-    value: "Medio",
-    label: "Medio",
-    desc: "Cerca de la meta",
-    theme: {
-      border: "border-yellow-500",
-      ring: "ring-yellow-500",
-      bg: "bg-yellow-50 dark:bg-yellow-950/40",
-      text: "text-yellow-700 dark:text-yellow-300",
-      hover: "hover:border-yellow-400 dark:hover:border-yellow-600",
-    },
-  },
-  {
-    value: "Bajo",
-    label: "Bajo",
-    desc: "Lejos de la meta",
-    theme: {
-      border: "border-red-500",
-      ring: "ring-red-500",
-      bg: "bg-red-50 dark:bg-red-950/40",
-      text: "text-red-700 dark:text-red-300",
-      hover: "hover:border-red-400 dark:hover:border-red-600",
-    },
-  },
-  {
-    value: "Usuarios Específicos",
-    label: "Específicos",
-    desc: "Tú eliges a quién",
-    theme: {
-      border: "border-purple-500",
-      ring: "ring-purple-500",
-      bg: "bg-purple-50 dark:bg-purple-950/40",
-      text: "text-purple-700 dark:text-purple-300",
-      hover: "hover:border-purple-400 dark:hover:border-purple-600",
-    },
+    id: "manual",
+    titulo: "Selección manual",
+    cols: "grid-cols-1 sm:grid-cols-2",
+    items: [
+      {
+        value: "Usuarios Específicos",
+        label: "Específicos",
+        icon: UserRoundSearch,
+        theme: {
+          border: "border-teal-500",
+          ring: "ring-teal-500",
+          bg: "bg-teal-50 dark:bg-teal-950/40",
+          text: "text-teal-700 dark:text-teal-300",
+          iconBg:
+            "bg-teal-100 dark:bg-teal-950/70 text-teal-600 dark:text-teal-400",
+          hover: "hover:border-teal-400 dark:hover:border-teal-600",
+        },
+      },
+    ],
   },
 ];
 
@@ -114,29 +218,43 @@ export default function Difusion({
   const [usuariosEspecificos, setUsuariosEspecificos] = useState<string[]>([]);
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const especificosRef = useRef<HTMLDivElement>(null);
+
+  const idUsuario = (u: { id?: string; user_id?: string }) =>
+    String(u.id || u.user_id || "");
+
+  const termBusqueda = busquedaUsuario.toLowerCase().trim();
+  const buscandoUsuarios = termBusqueda.length >= 1;
 
   const usuariosLista = useMemo(() => {
-    const term = busquedaUsuario.toLowerCase().trim();
-    const filtrados = !term
-      ? usuarios
-      : usuarios.filter(
-          (u) =>
-            `${u.nombres || ""} ${u.apellidos || ""}`
-              .toLowerCase()
-              .includes(term) || (u.email || "").toLowerCase().includes(term),
-        );
+    if (!buscandoUsuarios) return [];
+    const base = (usuarios || []).filter((u) => idUsuario(u));
+    const filtrados = base.filter(
+      (u) =>
+        `${u.nombres || ""} ${u.apellidos || ""}`
+          .toLowerCase()
+          .includes(termBusqueda) ||
+        (u.email || "").toLowerCase().includes(termBusqueda),
+    );
 
     return [...filtrados].sort((a, b) => {
-      const aIdx = usuariosEspecificos.indexOf(a.id);
-      const bIdx = usuariosEspecificos.indexOf(b.id);
+      const aId = idUsuario(a);
+      const bId = idUsuario(b);
+      const aIdx = usuariosEspecificos.indexOf(aId);
+      const bIdx = usuariosEspecificos.indexOf(bId);
       const aSel = aIdx !== -1;
       const bSel = bIdx !== -1;
       if (aSel && bSel) return aIdx - bIdx;
       if (aSel) return -1;
       if (bSel) return 1;
-      return 0;
+      return nombreCompleto(a).localeCompare(nombreCompleto(b), "es");
     });
-  }, [usuarios, busquedaUsuario, usuariosEspecificos]);
+  }, [usuarios, termBusqueda, buscandoUsuarios, usuariosEspecificos]);
+
+  const usuariosSeleccionados = useMemo(() => {
+    const ids = new Set(usuariosEspecificos);
+    return (usuarios || []).filter((u) => ids.has(idUsuario(u)));
+  }, [usuarios, usuariosEspecificos]);
 
   const resetForm = () => {
     setTitulo("");
@@ -152,16 +270,17 @@ export default function Difusion({
   };
 
   const toggleUsuario = (id: string) => {
+    if (!id) return;
     setUsuariosEspecificos((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev],
     );
   };
 
   const toggleTodosVisibles = () => {
-    const idsVisibles = usuariosLista.map((u) => u.id);
-    const todosSeleccionados = idsVisibles.every((id) =>
-      usuariosEspecificos.includes(id),
-    );
+    const idsVisibles = usuariosLista.map((u) => idUsuario(u)).filter(Boolean);
+    const todosSeleccionados =
+      idsVisibles.length > 0 &&
+      idsVisibles.every((id) => usuariosEspecificos.includes(id));
     if (todosSeleccionados) {
       setUsuariosEspecificos((prev) =>
         prev.filter((id) => !idsVisibles.includes(id)),
@@ -213,6 +332,17 @@ export default function Difusion({
 
   const esEspecificos = publicoObjetivo === "Usuarios Específicos";
   const filtrosMensajes = useMensajesFiltros();
+
+  useEffect(() => {
+    if (!esEspecificos || !isOpen) return;
+    const t = window.setTimeout(() => {
+      especificosRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [esEspecificos, isOpen]);
 
   return (
     <div className="w-full">
@@ -266,19 +396,18 @@ export default function Difusion({
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
           </TransitionChild>
 
-          <div className="fixed inset-0 flex items-center justify-center p-0">
+          <div className="fixed inset-0 flex items-stretch md:items-center justify-center p-0 md:p-4">
             <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4"
-              enterTo="opacity-100 translate-y-0"
+              enterFrom="opacity-0 translate-y-4 md:translate-y-0 md:scale-95"
+              enterTo="opacity-100 translate-y-0 md:scale-100"
               leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0"
-              leaveTo="opacity-0 translate-y-4"
+              leaveFrom="opacity-100 translate-y-0 md:scale-100"
+              leaveTo="opacity-0 translate-y-4 md:translate-y-0 md:scale-95"
             >
-              <DialogPanel className="w-full h-full max-w-none bg-white dark:bg-neutral-900 flex flex-col shadow-2xl overflow-hidden">
-                {/* Header */}
-                <div className="flex justify-between items-center px-5 py-4 border-b dark:border-neutral-800 shrink-0">
+              <DialogPanel className="w-full h-full max-h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl lg:max-w-3xl bg-white dark:bg-neutral-900 flex flex-col shadow-2xl overflow-hidden min-h-0 md:rounded-2xl border-0 md:border md:border-gray-200 md:dark:border-neutral-700">
+                <div className="flex justify-between items-center px-4 md:px-5 py-3 md:py-4 border-b dark:border-neutral-800 shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="p-2 rounded-lg bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400">
                       <Megaphone className="w-5 h-5" />
@@ -300,8 +429,7 @@ export default function Difusion({
                   </button>
                 </div>
 
-                {/* Contenido */}
-                <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-5 flex flex-col gap-4 md:gap-5">
                   <div>
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
                       Título{" "}
@@ -330,46 +458,100 @@ export default function Difusion({
                     />
                   </div>
 
-                  <div>
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-                      Público objetivo
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                      {PUBLICOS.map((p) => {
-                        const activo = publicoObjetivo === p.value;
-                        const t = p.theme;
-                        return (
-                          <button
-                            key={p.value}
-                            type="button"
-                            onClick={() => {
-                              setPublicoObjetivo(p.value);
-                              if (p.value !== "Usuarios Específicos") {
-                                setUsuariosEspecificos([]);
-                              }
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">
+                        Público objetivo
+                      </label>
+                      {esEspecificos && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPublicoObjetivo("Todos");
+                            setUsuariosEspecificos([]);
+                            setBusquedaUsuario("");
+                          }}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                          Cambiar público
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2.5">
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {GRUPOS_PUBLICO.filter(
+                          (grupo) => !esEspecificos || grupo.id === "manual",
+                        ).map((grupo) => (
+                          <motion.div
+                            key={grupo.id}
+                            layout
+                            initial={{ opacity: 0, height: 0, y: -8 }}
+                            animate={{ opacity: 1, height: "auto", y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -10 }}
+                            transition={{
+                              duration: 0.32,
+                              ease: [0.25, 0.46, 0.45, 0.94],
                             }}
-                            className={`text-left p-2 lg:p-2.5 rounded-lg border transition-all min-w-0 ${
-                              activo
-                                ? `${t.border} ${t.bg} ring-1 ${t.ring}`
-                                : `border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 ${t.hover}`
-                            }`}
+                            className="overflow-hidden"
                           >
-                            <span
-                              className={`block text-[10px] lg:text-xs font-bold leading-tight ${t.text}`}
-                            >
-                              {p.label}
-                            </span>
-                            <span className="block text-[9px] lg:text-[10px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5 line-clamp-2">
-                              {p.desc}
-                            </span>
-                          </button>
-                        );
-                      })}
+                            <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50/70 dark:bg-neutral-900/50 p-2.5 sm:p-3">
+                              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                {grupo.titulo}
+                              </p>
+                              <div className={`grid ${grupo.cols} gap-2`}>
+                                {grupo.items.map((p) => {
+                                  const activo = publicoObjetivo === p.value;
+                                  const t = p.theme;
+                                  const Icon = p.icon;
+                                  return (
+                                    <button
+                                      key={p.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setPublicoObjetivo(p.value);
+                                        if (p.value !== "Usuarios Específicos") {
+                                          setUsuariosEspecificos([]);
+                                          setBusquedaUsuario("");
+                                        }
+                                      }}
+                                      className={`group flex items-center gap-2 text-left px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-lg border-2 transition-all min-w-0 ${
+                                        activo
+                                          ? `${t.border} ${t.bg} ring-2 ${t.ring} shadow-sm`
+                                          : `border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 ${t.hover}`
+                                      }`}
+                                    >
+                                      <span
+                                        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${t.iconBg}`}
+                                      >
+                                        <Icon className="h-3.5 w-3.5" />
+                                      </span>
+                                      <span
+                                        className={`min-w-0 flex-1 text-xs sm:text-sm font-bold leading-tight ${t.text}`}
+                                      >
+                                        {p.label}
+                                      </span>
+                                      {activo && (
+                                        <Check
+                                          className={`h-4 w-4 shrink-0 ${t.text}`}
+                                        />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   </div>
 
                   {esEspecificos && (
-                    <div className="border border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden">
+                    <div
+                      ref={especificosRef}
+                      className="border border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden shrink-0"
+                    >
                       <div className="flex items-center justify-between px-2 py-2 sm:px-3 sm:py-2.5 bg-gray-50 dark:bg-neutral-800/60 border-b dark:border-neutral-700 gap-2">
                         <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 min-w-0">
                           <Users className="w-3.5 h-3.5 shrink-0" />
@@ -378,102 +560,138 @@ export default function Difusion({
                             {usuariosEspecificos.length}
                           </span>
                         </span>
-                        <button
-                          type="button"
-                          onClick={toggleTodosVisibles}
-                          className="text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 hover:underline shrink-0 whitespace-nowrap"
-                        >
-                          {usuariosLista.length > 0 &&
-                          usuariosLista.every((u) =>
-                            usuariosEspecificos.includes(u.id),
-                          )
-                            ? "Quitar todos"
-                            : "Seleccionar todos"}
-                        </button>
+                        {buscandoUsuarios && usuariosLista.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={toggleTodosVisibles}
+                            className="text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 hover:underline shrink-0 whitespace-nowrap"
+                          >
+                            {usuariosLista.every((u) =>
+                              usuariosEspecificos.includes(idUsuario(u)),
+                            )
+                              ? "Quitar resultados"
+                              : "Seleccionar resultados"}
+                          </button>
+                        )}
                       </div>
 
-                      {/* Buscador */}
-                      <div className="p-3 pb-2">
+                      <div className="p-3 border-b border-gray-100 dark:border-neutral-800">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                           <Input
-                            placeholder="Buscar por nombre..."
+                            placeholder="Escribe un nombre para buscar..."
                             value={busquedaUsuario}
                             onChange={(e) => setBusquedaUsuario(e.target.value)}
                             className="pl-9 h-9 text-sm"
+                            autoComplete="off"
                           />
                         </div>
                       </div>
 
-                      {/* Lista */}
-                      <LayoutGroup id="destinatarios-difusion">
-                        <div className="max-h-[45vh] sm:max-h-[55vh] overflow-y-auto px-2 pb-2 sm:px-3 sm:pb-3 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                          {usuariosLista.map((u) => {
-                            const isSelected = usuariosEspecificos.includes(u.id);
-                            return (
-                              <motion.button
-                                key={u.id}
-                                type="button"
-                                layout
-                                initial={false}
-                                transition={{
-                                  layout: {
-                                    type: "spring",
-                                    stiffness: 420,
-                                    damping: 34,
-                                  },
-                                }}
-                                onClick={() => toggleUsuario(u.id)}
-                                className={`flex items-start sm:items-center gap-1.5 px-2 py-1.5 rounded-md border text-left min-w-0 transition-colors duration-200 ${
-                                  isSelected
-                                    ? "border-green-500 bg-green-50 dark:bg-green-950/40"
-                                    : "border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800"
-                                }`}
-                              >
-                              <span className="min-w-0 flex-1">
-                                <span className="sm:hidden">
-                                  <span
-                                    className={`block text-[10px] font-semibold leading-tight truncate ${
-                                      isSelected
-                                        ? "text-green-800 dark:text-green-200"
-                                        : "text-gray-800 dark:text-gray-100"
-                                    }`}
-                                  >
-                                    {u.nombres || ""}
+                      {usuariosSeleccionados.length > 0 && (
+                        <div className="px-2 pt-2 sm:px-3 border-b border-gray-100 dark:border-neutral-800 pb-2">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5 px-0.5">
+                            Seleccionados
+                          </p>
+                          <div className="flex flex-col gap-1 max-h-[20vh] overflow-y-auto">
+                            {usuariosSeleccionados.map((u) => {
+                              const uid = idUsuario(u);
+                              return (
+                                <button
+                                  key={`sel-${uid}`}
+                                  type="button"
+                                  onClick={() => toggleUsuario(uid)}
+                                  className="flex items-center gap-2 w-full px-2.5 py-2 rounded-md border border-green-500 bg-green-50 dark:bg-green-950/40 text-left"
+                                >
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-xs font-bold text-green-800 dark:text-green-200 leading-tight truncate">
+                                      {u.nombres || "—"}
+                                    </span>
+                                    <span className="block text-[11px] text-green-700 dark:text-green-300 leading-tight truncate">
+                                      {u.apellidos || ""}
+                                    </span>
                                   </span>
-                                  <span
-                                    className={`block text-[10px] leading-tight truncate ${
-                                      isSelected
-                                        ? "text-green-700 dark:text-green-300"
-                                        : "text-gray-600 dark:text-gray-400"
-                                    }`}
-                                  >
-                                    {u.apellidos || ""}
+                                  <span className="flex items-center justify-center w-4 h-4 rounded border bg-green-600 border-green-600 shrink-0">
+                                    <Check
+                                      className="w-3 h-3 text-white"
+                                      strokeWidth={3}
+                                    />
                                   </span>
-                                </span>
-                                <span className="hidden sm:block text-[11px] font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2">
-                                  {nombreCompleto(u)}
-                                </span>
-                              </span>
-                              <span
-                                className={`flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border shrink-0 ${
-                                  isSelected
-                                    ? "bg-green-600 border-green-600"
-                                    : "border-gray-300 dark:border-neutral-600"
-                                }`}
-                              >
-                                {isSelected && (
-                                  <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" strokeWidth={3} />
-                                )}
-                              </span>
-                            </motion.button>
-                          );
-                        })}
-                        {usuariosLista.length === 0 && (
-                          <div className="col-span-2 sm:col-span-3 p-6 text-center text-xs text-gray-500">
-                            No se encontraron usuarios
+                                </button>
+                              );
+                            })}
                           </div>
-                        )}
+                        </div>
+                      )}
+
+                      <LayoutGroup id="destinatarios-difusion">
+                        <div className="max-h-[36vh] min-h-[8rem] overflow-y-auto px-2 py-2 sm:px-3 sm:py-3 flex flex-col gap-1">
+                          {!buscandoUsuarios ? (
+                            <div className="flex-1 flex items-center justify-center p-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                              Escribe un nombre para mostrar usuarios
+                            </div>
+                          ) : usuariosLista.length === 0 ? (
+                            <div className="flex-1 flex items-center justify-center p-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                              No se encontraron usuarios
+                            </div>
+                          ) : (
+                            usuariosLista.map((u) => {
+                              const uid = idUsuario(u);
+                              const isSelected =
+                                usuariosEspecificos.includes(uid);
+                              return (
+                                <motion.button
+                                  key={uid}
+                                  type="button"
+                                  layout
+                                  initial={{ opacity: 0, y: 6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  onClick={() => toggleUsuario(uid)}
+                                  className={`flex items-center gap-2 w-full px-2.5 py-2 rounded-md border text-left min-w-0 transition-colors duration-200 ${
+                                    isSelected
+                                      ? "border-green-500 bg-green-50 dark:bg-green-950/40"
+                                      : "border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                                  }`}
+                                >
+                                  <span className="min-w-0 flex-1">
+                                    <span
+                                      className={`block text-xs font-bold leading-tight truncate ${
+                                        isSelected
+                                          ? "text-green-800 dark:text-green-200"
+                                          : "text-gray-800 dark:text-gray-100"
+                                      }`}
+                                    >
+                                      {u.nombres || "—"}
+                                    </span>
+                                    <span
+                                      className={`block text-[11px] leading-tight truncate ${
+                                        isSelected
+                                          ? "text-green-700 dark:text-green-300"
+                                          : "text-gray-600 dark:text-gray-400"
+                                      }`}
+                                    >
+                                      {u.apellidos || ""}
+                                    </span>
+                                  </span>
+                                  <span
+                                    className={`flex items-center justify-center w-4 h-4 rounded border shrink-0 ${
+                                      isSelected
+                                        ? "bg-green-600 border-green-600"
+                                        : "border-gray-300 dark:border-neutral-600"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <Check
+                                        className="w-3 h-3 text-white"
+                                        strokeWidth={3}
+                                      />
+                                    )}
+                                  </span>
+                                </motion.button>
+                              );
+                            })
+                          )}
                         </div>
                       </LayoutGroup>
                     </div>
@@ -481,8 +699,7 @@ export default function Difusion({
 
                 </div>
 
-                {/* Footer */}
-                <div className="flex justify-end gap-2 px-5 py-4 border-t dark:border-neutral-800 shrink-0 bg-gray-50/50 dark:bg-neutral-900">
+                <div className="flex justify-end gap-2 px-4 md:px-5 py-3 md:py-4 border-t dark:border-neutral-800 shrink-0 bg-gray-50/50 dark:bg-neutral-900">
                   <Button
                     variant="ghost"
                     onClick={handleClose}
