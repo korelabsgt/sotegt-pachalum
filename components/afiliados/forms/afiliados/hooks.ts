@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { afiliadoSchema, type AfiliadoFormData } from "./schemas";
+import { fechaNacimientoInputValue } from "../../fechaNacimiento";
 
 type Lider = {
   id: string;
@@ -55,9 +56,7 @@ export function useInicializarFormulario(
       if (afiliadoAEditar) {
         methods.reset({
           ...afiliadoAEditar,
-          nacimiento: afiliadoAEditar.nacimiento
-            ? new Date(afiliadoAEditar.nacimiento).toISOString().split("T")[0]
-            : "",
+          nacimiento: fechaNacimientoInputValue(afiliadoAEditar.nacimiento),
           religion: afiliadoAEditar.religion || "",
           religion_otra: "",
           lugar_id: afiliadoAEditar.lugar_id,

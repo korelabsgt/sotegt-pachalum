@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import type { Afiliado, Lider } from "./esquemas";
 import { esUsuarioSede } from "./esquemas";
 import { formatearDpi, TelefonoInline } from "./contacto";
+import { etiquetaEdadNacimiento } from "./fechaNacimiento";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -109,15 +110,7 @@ function compararNombres(a: string, b: string) {
 }
 
 function calcularEdad(fechaNacimiento: string) {
-  if (!fechaNacimiento) return "—";
-  const hoy = new Date();
-  const nacimiento = new Date(fechaNacimiento);
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
-  const mes = hoy.getMonth() - nacimiento.getMonth();
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-    edad--;
-  }
-  return `${edad} años`;
+  return etiquetaEdadNacimiento(fechaNacimiento);
 }
 
 function filaExcel(

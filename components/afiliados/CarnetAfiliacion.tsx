@@ -7,6 +7,10 @@ import { Download, Printer, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import type { Afiliado } from "./esquemas";
 import { formatearDpi } from "./contacto";
+import {
+  etiquetaEdadNacimiento,
+  formatearFechaNacimiento,
+} from "./fechaNacimiento";
 
 interface Props {
   afiliado: Afiliado | null;
@@ -16,7 +20,8 @@ interface Props {
 
 const CARNET_WIDTH_MM = 85.6;
 const CARNET_HEIGHT_MM = 53.98;
-const LOGO_URL = "/images/logosede.png";
+const LOGO_SEDE_URL = "/images/logosede.png";
+const LOGO_FALLBACK_URL = "/images/logo.png";
 
 function slugNombreArchivo(nombre: string) {
   return (
@@ -27,27 +32,6 @@ function slugNombreArchivo(nombre: string) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "afiliado"
   );
-}
-
-function calcularEdad(nacimiento: string | null | undefined): string {
-  if (!nacimiento) return "—";
-  const fecha = new Date(nacimiento);
-  if (Number.isNaN(fecha.getTime())) return "—";
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - fecha.getFullYear();
-  const m = hoy.getMonth() - fecha.getMonth();
-  if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) edad -= 1;
-  return `${edad} años`;
-}
-
-function formatearFecha(nacimiento: string | null | undefined): string {
-  if (!nacimiento) return "—";
-  const fecha = new Date(nacimiento);
-  if (Number.isNaN(fecha.getTime())) return "—";
-  const dd = String(fecha.getDate()).padStart(2, "0");
-  const mm = String(fecha.getMonth() + 1).padStart(2, "0");
-  const yyyy = fecha.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
 }
 
 function etiquetaGenero(sexo: string | null | undefined): string {
@@ -105,6 +89,7 @@ function OndaCarnet({ className = "" }: { className?: string }) {
 
 export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
   const [generando, setGenerando] = useState(false);
+  const [logoSrc, setLogoSrc] = useState(LOGO_SEDE_URL);
   const carnetRef = useRef<HTMLDivElement>(null);
 
   if (!afiliado) return null;
@@ -127,8 +112,8 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
     !!dpiNorm && !!padronNorm && dpiNorm === padronNorm;
   const lugar = afiliado.lugar_nombre || "—";
   const genero = etiquetaGenero(afiliado.sexo);
-  const fechaNac = formatearFecha(afiliado.nacimiento);
-  const edad = calcularEdad(afiliado.nacimiento);
+  const fechaNac = formatearFechaNacimiento(afiliado.nacimiento);
+  const edad = etiquetaEdadNacimiento(afiliado.nacimiento);
 
   const esperarImagenes = async (raiz: HTMLElement) => {
     const imgs = Array.from(raiz.querySelectorAll("img"));
@@ -379,11 +364,16 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
               <div className="relative z-10 h-[72%] px-3.5 pt-2">
                 {/* Logo esquina superior derecha, encima del texto */}
                 <img
-                  src={LOGO_URL}
+                  src={logoSrc}
                   alt="CABAL"
                   crossOrigin="anonymous"
                   className="pointer-events-none absolute right-2 top-1 z-20 h-[5rem] w-auto object-contain drop-shadow-sm md:h-[5.5rem]"
                   draggable={false}
+                  onError={() => {
+                    if (logoSrc !== LOGO_FALLBACK_URL) {
+                      setLogoSrc(LOGO_FALLBACK_URL);
+                    }
+                  }}
                 />
 
                 <p

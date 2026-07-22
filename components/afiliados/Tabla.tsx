@@ -22,6 +22,7 @@ import type { Afiliado, Lider } from "./esquemas";
 import GestionDpiModal from "./GestionDpiModal";
 import CarnetAfiliacion from "./CarnetAfiliacion";
 import { formatearDpi, TelefonoInline } from "./contacto";
+import { etiquetaEdadNacimiento } from "./fechaNacimiento";
 
 export type FormatoVista = "tarjetas" | "tabla";
 
@@ -80,17 +81,8 @@ export default function Tabla({
     );
   }
 
-  const calcularEdad = (fechaNacimiento: string) => {
-    if (!fechaNacimiento) return "—";
-    const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    return `${edad} años`;
-  };
+  const calcularEdad = (fechaNacimiento: string) =>
+    etiquetaEdadNacimiento(fechaNacimiento);
 
   const generarLinkWhatsapp = (telefono: string) => {
     if (!telefono) return "#";
