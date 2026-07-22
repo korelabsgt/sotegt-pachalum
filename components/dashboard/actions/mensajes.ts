@@ -54,21 +54,41 @@ async function resolverUserIdsPorNivel(nivel: string): Promise<string[]> {
     );
 }
 
+function nombreRolDesdeRelacion(
+  roles:
+    | { nombre?: string | null }
+    | { nombre?: string | null }[]
+    | null
+    | undefined,
+): string {
+  if (!roles) return "";
+  if (Array.isArray(roles)) return (roles[0]?.nombre || "").toUpperCase();
+  return (roles.nombre || "").toUpperCase();
+}
+
 async function resolverUserIdsPorRol(roles: string[]): Promise<string[]> {
   const rolesUpper = new Set(roles.map((r) => r.toUpperCase()));
   const { data } = await supabaseAdmin
     .from("info_perfil")
     .select("user_id, roles!inner(nombre)");
 
-  return (data || [])
-    .filter((p: { user_id: string; roles?: { nombre?: string } | null }) => {
-      const nombre = (p.roles?.nombre || "").toUpperCase();
+  const filas = (data ?? []) as Array<{
+    user_id: string;
+    roles?:
+      | { nombre?: string | null }
+      | { nombre?: string | null }[]
+      | null;
+  }>;
+
+  return filas
+    .filter((p) => {
+      const nombre = nombreRolDesdeRelacion(p.roles);
       if (rolesUpper.has(nombre)) return true;
       if (rolesUpper.has("EMPLEADO") && nombre === "TRABAJADOR") return true;
       if (rolesUpper.has("LIDER") && nombre === "LÍDER") return true;
       return false;
     })
-    .map((p: { user_id: string }) => p.user_id);
+    .map((p) => p.user_id);
 }
 
 export async function enviarMensajeAction(input: EnviarMensajeInput) {
@@ -163,9 +183,9 @@ async function obtenerRolUsuario(
     .eq("user_id", userId)
     .single();
 
-  return (
-    (perfil as { roles?: { nombre?: string } } | null)?.roles?.nombre?.toUpperCase() ??
-    ""
+  return nombreRolDesdeRelacion(
+    (perfil as { roles?: { nombre?: string } | { nombre?: string }[] | null } | null)
+      ?.roles,
   );
 }
 
@@ -282,9 +302,10 @@ export async function obtenerHistorialMensajesAction() {
     .eq("user_id", user.id)
     .single();
 
-  const rol =
-    (perfil as { roles?: { nombre?: string } } | null)?.roles?.nombre?.toUpperCase() ??
-    "";
+  const rol = nombreRolDesdeRelacion(
+    (perfil as { roles?: { nombre?: string } | { nombre?: string }[] | null } | null)
+      ?.roles,
+  );
 
   const { data: mensajes, error } = await supabase
     .from("sis_mensajes")
