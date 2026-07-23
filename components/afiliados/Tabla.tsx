@@ -19,6 +19,7 @@ import {
 
 import { eliminar } from "./acciones";
 import type { Afiliado, Lider } from "./esquemas";
+import { esUsuarioSede } from "./esquemas";
 import GestionDpiModal from "./GestionDpiModal";
 import CarnetAfiliacion from "./CarnetAfiliacion";
 import { formatearDpi, TelefonoInline } from "./contacto";
@@ -53,7 +54,8 @@ export default function Tabla({
   isFamilyView = false,
   formato = "tarjetas",
 }: Props) {
-  const soloLectura = (rolUsuarioSesion || "").toUpperCase() === "SEDE";
+  const esSedeSesion = (rolUsuarioSesion || "").toUpperCase() === "SEDE";
+  const soloLectura = esSedeSesion && !esUsuarioSede(lider);
   const puedeEditar = !soloLectura;
   const puedeVerAcciones = true;
   const totalAfiliados = totalEnCelula ?? afiliados.length;

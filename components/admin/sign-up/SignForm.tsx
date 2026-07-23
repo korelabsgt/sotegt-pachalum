@@ -273,16 +273,17 @@ export function SignupForm({
     Boolean(rolInicial) &&
     !isEdit &&
     !(rolInicial === "SUPER" && !esSuperSesion);
-  const rolSoloLectura = !isEdit && (modoCrearSede || rolFijoDesdeMenu);
   const editandoSede =
     isEdit &&
     ((initialData?.rol || "").toUpperCase() === "SEDE" ||
       Number(initialData?.rol_id) === 5);
+  const rolSoloLectura =
+    (!isEdit && (modoCrearSede || rolFijoDesdeMenu)) || editandoSede;
   const rolesParaSelector = rolesDisponibles.filter((r) => {
-    const nombre = r.nombre.toUpperCase();
+    const nombre = r.nombre.toUpperCase().trim();
     if (nombre === "DOCUMENTADOR") return false;
     if (!esSuperSesion && nombre === "SUPER") return false;
-    if (modoCrearSede) return nombre === "SEDE" || r.id === 5;
+    if (modoCrearSede || editandoSede) return nombre === "SEDE";
     if (rolFijoDesdeMenu) {
       if (rolInicial === "EMPLEADO") {
         return nombre === "EMPLEADO" || nombre === "TRABAJADOR";
@@ -291,7 +292,6 @@ export function SignupForm({
       if (rolInicial === "SUPER") return nombre === "SUPER";
       return nombre === "LIDER" || nombre === "LÍDER";
     }
-    if (editandoSede) return true;
     return nombre !== "SEDE";
   });
 

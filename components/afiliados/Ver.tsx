@@ -8,7 +8,9 @@ import {
   BarChart3,
   Building2,
   FileBarChart,
+  Pencil,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -49,7 +51,8 @@ import type { Afiliado, Lider } from "./esquemas";
 import { esRolEmpleado, esUsuarioSede } from "./esquemas";
 import Form from "./forms/afiliados/Afiliados";
 import ReporteLideresClasificacion from "./reportes/ReporteLideresClasificacion";
-
+import { eliminar } from "./acciones";
+import { swalNoEliminarCelula } from "@/lib/swalTheme";
 import { obtenerAfiliadosAction } from "./actions/afiliados";
 import { obtenerConfiguracionAction } from "@/components/dashboard/actions/configuracion";
 import { AFILIADOS_SIMULADOS, LIDER_SIMULADO } from "./datosSimulados";
@@ -719,15 +722,50 @@ export default function Ver() {
                 >
                   {activeTab === "Sede" &&
                     (sedeUsuario ? (
-                      <Celula
-                        mode="embedded"
-                        lider={sedeUsuario}
-                        onEditar={handleOpenEditModal}
-                        onAnadirAfiliado={handleOpenAnadirAfiliadoModal}
-                        onDataChange={fetchData}
-                        rolUsuarioSesion={rolSesionCelula}
-                        usuarios={allUsers}
-                      />
+                      <>
+                        {esAdminOSuper && (
+                          <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() =>
+                                handleOpenEditLiderModal(sedeUsuario)
+                              }
+                              className="gap-1.5 h-9 px-3 text-sm border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60"
+                            >
+                              <Pencil className="w-4 h-4 shrink-0" />
+                              Editar Sede
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                if ((sedeUsuario.conteoAfiliados || 0) > 0) {
+                                  swalNoEliminarCelula();
+                                  return;
+                                }
+                                void eliminar(
+                                  sedeUsuario,
+                                  refreshAfterDeletion,
+                                );
+                              }}
+                              className="gap-1.5 h-9 px-3 text-sm border-red-500 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/60"
+                            >
+                              <Trash2 className="w-4 h-4 shrink-0" />
+                              Eliminar Sede
+                            </Button>
+                          </div>
+                        )}
+                        <Celula
+                          mode="embedded"
+                          lider={sedeUsuario}
+                          onEditar={handleOpenEditModal}
+                          onAnadirAfiliado={handleOpenAnadirAfiliadoModal}
+                          onDataChange={fetchData}
+                          rolUsuarioSesion={rolSesionCelula}
+                          usuarios={allUsers}
+                        />
+                      </>
                     ) : (
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-dashed border-blue-400/70 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-950/20 px-4 py-6">
                         <div className="flex items-start gap-3 min-w-0">

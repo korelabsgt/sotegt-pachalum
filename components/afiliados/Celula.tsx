@@ -67,7 +67,9 @@ export default function Celula({
   const [titularFamilia, setTitularFamilia] = useState<Afiliado | null>(null);
 
   const esSimulado = !!lider?.simulado;
-  const soloLectura = (rolUsuarioSesion || "").toUpperCase() === "SEDE";
+  const esSedeSesion = (rolUsuarioSesion || "").toUpperCase() === "SEDE";
+  const celulaEsSede = !!lider && esUsuarioSede(lider);
+  const soloLectura = esSedeSesion && !celulaEsSede;
 
   const { data: afiliadosQuery = [], isLoading: isLoadingQuery } = useQuery({
     queryKey: ["afiliados-lider", lider?.id],
@@ -393,15 +395,18 @@ export default function Celula({
                       <Button
                         variant="outline"
                         className={`gap-2 font-bold h-11 sm:h-12 px-4 sm:px-6 shadow-none flex-1 sm:flex-none uppercase text-xs shrink-0 backdrop-blur-sm transition-colors ${
-                          totalEnGrupo === 0
+                          totalEnGrupo === 0 && !celulaEsSede
                             ? "border-green-500 dark:border-green-600 text-green-700 dark:text-green-400 bg-white/70 dark:bg-white/5 hover:bg-green-100 dark:hover:bg-green-950/55 animate-pulse"
                             : "border-blue-500 dark:border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/45 hover:bg-blue-100 dark:hover:bg-blue-950/65"
                         }`}
                         onClick={() =>
-                          onAnadirAfiliado(lider.id, totalEnGrupo === 0)
+                          onAnadirAfiliado(
+                            lider.id,
+                            totalEnGrupo === 0 && !celulaEsSede,
+                          )
                         }
                       >
-                        {totalEnGrupo === 0 ? (
+                        {totalEnGrupo === 0 && !celulaEsSede ? (
                           <>
                             <UserPlus className="w-5 h-5" /> Registrarme como{" "}
                             {etiquetaRol}

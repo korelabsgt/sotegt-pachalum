@@ -63,13 +63,16 @@ export function calcularNivelCompromiso(
   }
 
   if (total === 0) {
+    const esSede = (etiquetaRol || "").toUpperCase() === "SEDE";
     return {
       nivel: "Bajo",
       colorBarra: "bg-gray-300 dark:bg-neutral-600",
       textoColor: "text-red-600 dark:text-red-400",
       bordeCard: "border-gray-400 dark:border-neutral-500",
       gifUrl: "/gif/afiliados/gif1.gif",
-      mensaje: `👋 ¡Hola ${nombreLider ?? etiquetaRol}! Inicia tu grupo registrándote a ti mismo.`,
+      mensaje: esSede
+        ? "👋 ¡Bienvenido! Empieza añadiendo integrantes a la sede."
+        : `👋 ¡Hola ${nombreLider ?? etiquetaRol}! Inicia tu grupo registrándote a ti mismo.`,
     };
   }
 
