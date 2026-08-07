@@ -20,8 +20,8 @@ interface Props {
 
 const CARNET_WIDTH_MM = 85.6;
 const CARNET_HEIGHT_MM = 53.98;
-const LOGO_SEDE_URL = "/images/logosede.png";
-const LOGO_FALLBACK_URL = "/images/logo.png";
+const LOGO_UNE_URL = "/svg/UNE_Logo.svg";
+const LOGO_FALLBACK_URL = "/svg/UNE_Logo.svg";
 
 function slugNombreArchivo(nombre: string) {
   return (
@@ -51,36 +51,36 @@ function OndaCarnet({ className = "" }: { className?: string }) {
       <rect width="856" height="540" fill="#ffffff" />
       <path
         d="M0 455 C160 435 260 480 400 458 C520 440 620 425 856 412 L856 540 L0 540 Z"
-        fill="#1d4ed8"
+        fill="#50A700"
       />
       <path
         d="M0 468 C150 450 250 490 390 472 C520 455 630 442 856 430"
         fill="none"
-        stroke="#1e3a8a"
+        stroke="#3d8200"
         strokeWidth="3"
         opacity="0.4"
       />
       <path
         d="M0 480 C140 462 240 498 380 484 C520 470 640 458 856 448"
         fill="none"
-        stroke="#1e40af"
+        stroke="#458f00"
         strokeWidth="2.5"
         opacity="0.35"
       />
       <path
         d="M0 450 C160 430 260 475 400 453 C520 435 620 420 856 407"
         fill="none"
-        stroke="#2563eb"
+        stroke="#5fbf00"
         strokeWidth="4"
         opacity="0.55"
       />
       <path
         d="M400 458 C520 440 620 425 856 412 L856 540 L480 540 C440 520 410 490 400 458 Z"
-        fill="#1e3a8a"
+        fill="#3d8200"
       />
       <path
         d="M460 462 C560 440 680 425 856 418 L856 540 L510 540 C475 515 450 485 460 462 Z"
-        fill="#1d4ed8"
+        fill="#50A700"
         opacity="0.95"
       />
     </svg>
@@ -89,7 +89,7 @@ function OndaCarnet({ className = "" }: { className?: string }) {
 
 export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
   const [generando, setGenerando] = useState(false);
-  const [logoSrc, setLogoSrc] = useState(LOGO_SEDE_URL);
+  const [logoSrc, setLogoSrc] = useState(LOGO_UNE_URL);
   const carnetRef = useRef<HTMLDivElement>(null);
 
   if (!afiliado) return null;
@@ -353,7 +353,7 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
           <div className="flex flex-col items-center gap-5 bg-white p-4 md:p-6 dark:bg-neutral-900">
             <div
               ref={carnetRef}
-              className="relative w-full max-w-[400px] overflow-hidden rounded-none border-[1.5px] border-[#1d4ed8] bg-white"
+              className="relative w-full max-w-[400px] overflow-hidden rounded-none border-[1.5px] border-[#50A700] bg-white"
               style={{
                 aspectRatio: "85.6 / 53.98",
                 fontFamily: "Arial, Helvetica, sans-serif",
@@ -365,9 +365,9 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
                 {/* Logo esquina superior derecha, encima del texto */}
                 <img
                   src={logoSrc}
-                  alt="CABAL"
+                  alt="UNE"
                   crossOrigin="anonymous"
-                  className="pointer-events-none absolute right-2 top-1 z-20 h-[5rem] w-auto object-contain drop-shadow-sm md:h-[5.5rem]"
+                  className="pointer-events-none absolute right-2 top-1 z-20 h-[3.25rem] w-auto object-contain drop-shadow-sm md:h-[3.75rem]"
                   draggable={false}
                   onError={() => {
                     if (logoSrc !== LOGO_FALLBACK_URL) {
@@ -474,7 +474,7 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
                 variant="outline"
                 onClick={imprimir}
                 disabled={generando}
-                className="hidden w-full border-blue-300 text-blue-800 hover:bg-blue-50 sm:inline-flex sm:w-auto"
+                className="hidden w-full border-[#50A700]/40 text-[#3d8200] hover:bg-[#50A700]/5 sm:inline-flex sm:w-auto"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 {generando ? "Preparando..." : "Imprimir"}
@@ -483,7 +483,7 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
                 type="button"
                 onClick={descargarImagen}
                 disabled={generando}
-                className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto"
+                className="w-full bg-[#50A700] hover:bg-[#3d8200] sm:w-auto"
               >
                 <Download className="mr-2 h-4 w-4" />
                 {generando ? "Generando..." : "Descargar imagen"}

@@ -1,11 +1,10 @@
 ---
-description: Resumen de cambios del chat (roles SEDE/EMPLEADO, pestañas, miembros, Swal, carnet, emails, meta, menú acciones) para replicar en otro proyecto
+description: Resumen de cambios (SEDE por contexto, pestañas underline, Nuevo por tab, SignForm cards, Lideres UI, mensajes TS, no auto-delete) para replicar en otro proyecto
 alwaysApply: false
 ---
 
 # Portar cambios — sesión afiliados / roles / UI
 
-Guía para aplicar en otro repo los mismos cambios hechos en este chat del proyecto `afiliadosclm`.
 
 ## Dependencias
 
@@ -46,26 +45,55 @@ const nativeFire = SwalBase.fire.bind(SwalBase);
 
 ---
 
-## 3. Rol SEDE: ver pestañas, solo lectura
+## 3. Rol SEDE: ver pestañas, permisos por contexto
 
 **Reglas de negocio:**
 
-| Rol                 | Vista                                             |
-| ------------------- | ------------------------------------------------- |
-| SUPER / ADMIN       | Todas las pestañas + editar                       |
-| SEDE                | Sede, Líderes, Empleados, Miembros — **solo ver** |
-| Resto (LIDER, etc.) | Meta + su célula                                  |
+| Rol                 | Vista                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| SUPER / ADMIN       | Todas las pestañas + editar/eliminar (incl. usuario Sede)             |
+| SEDE                | Sede, Líderes, Empleados, Miembros — **sin** Administrativos/Mensajes/Padrón |
+| Resto (LIDER, etc.) | Meta + su célula                                                      |
 
 **Detección SEDE:** rol `SEDE` **o** `esUsuarioSede({ nombres, apellidos, email, rol })` (nombre “Sede …”, email `sede@…`).
 
-**Solo lectura SEDE:**
+**Permisos SEDE (refinado):**
 
-- `Lideres.tsx`: menú editar/eliminar solo si `ADMIN/SUPER/DOCUMENTADOR` (no SEDE).
-- `Celula.tsx`: ocultar “Añadir integrante” si rol sesión `SEDE`.
-- `Tabla.tsx`: ocultar menú Editar/Eliminar si `SEDE`.
-- Pasar `rolUsuarioSesion={esSedeSesion ? "SEDE" : rol}` cuando se detecta sede por nombre.
+| Contexto                         | Crear/editar afiliados | Ver célula líder/empleado |
+| -------------------------------- | ---------------------- | ------------------------- |
+| **Su propia célula** (pestaña Sede) | Sí                     | —                         |
+| Células de líderes/empleados     | No (solo lectura)      | Sí                        |
+
+**Implementación:**
+
+```ts
+const celulaEsSede = !!lider && esUsuarioSede(lider);
+const soloLectura = esSedeSesion && !celulaEsSede;
+```
+
+- `Celula.tsx` y `Tabla.tsx`: usar `soloLectura` arriba (no `rol === "SEDE"` a ciegas).
+- `Lideres.tsx`: menú ⋮ solo si `puedeGestionarUsuarios` (`ADMIN/SUPER/DOCUMENTADOR`); SEDE no ve el menú.
+- `Ver.tsx`: `cambiarTab` bloquea `Mensajes`, `Administrativos`, `Padron` si `soloLecturaSede`.
+- Pestañas Administrativos/Mensajes/Padrón: `show: esAdminOSuper` (y padrón si config).
+- Pasar `rolUsuarioSesion={esSedeSesion ? "SEDE" : rol}`.
+
+**Sede es un lugar (no persona):**
+
+- En célula Sede **nunca** mostrar “Registrarme como Sede”.
+- Siempre **“Añadir Integrante”**; no pasar `isFirstMember: true` al crear afiliado en sede (`totalEnGrupo === 0 && !celulaEsSede`).
+- Mensaje nivel 0 en `lib/nivelCompromiso.ts`: *“¡Bienvenido! Empieza añadiendo integrantes a la sede.”*
+
+**Admin/Super y usuario Sede:**
+
+- En pestaña Sede, si `sedeUsuario` existe: botones **Editar Sede** / **Eliminar Sede** (`handleOpenEditLiderModal` + `eliminar` con `swalNoEliminarCelula` si tiene afiliados).
+- En `SignForm`: crear/editar sede → `rolesParaSelector` **solo** rol `SEDE` (ignorar `DOCUMENTADOR`); card única de rol en creación.
 
 **Perfil no encontrado:** si el usuario no está en `allUsers` (RLS/`roles!inner`), armar fallback desde `session` y usar como `miPerfilGlobal` / `sedeUsuario`.
+
+**No eliminar propio perfil:**
+
+- `Lideres.tsx`: opción Eliminar solo si `esAdminOSuper && lider.id !== idUsuarioSesion`.
+- `app/actions/usuarios.ts` → `deleteUserAccountAction`: si `user.id === userId` retornar error *“No puedes eliminar tu propio perfil.”*
 
 ---
 
@@ -92,9 +120,9 @@ Usar en:
 
 ## 5. Pestañas (`Ver.tsx`)
 
-**Orden:** Sede → Líderes → Empleados → Miembros → Administrativos → Mensajes
+**Orden:** Sede → Líderes → Empleados → Miembros → Padrón → Administrativos → Mensajes
 
-**Contadores en el label:**
+**Contadores:** badge redondo junto al label (no paréntesis), p. ej. `Líderes` + pill `1`.
 
 | Pestaña         | Contador                                     |
 | --------------- | -------------------------------------------- |
@@ -104,22 +132,23 @@ Usar en:
 | Miembros        | total afiliados (sede + líderes + empleados) |
 | Administrativos | # usuarios ADMIN/SUPER                       |
 
-**Iconos:** medalla (`PiMedalDuotone` / `Medal`) para líderes; no corona.
+**Iconos:** medalla (`PiMedalDuotone`) líderes; maletín empleados; escudo admin; código super.
 
-**Línea bajo pestañas:**
+**Estilo pestañas (moderno, fino):**
 
-- Grosor igual al borde de pestaña (`3px` móvil / `4px` desktop); línea inferior `3px` / `4px` (`h-[3px]` / `md:h-1`).
-- Color = tema de la pestaña activa.
-- Animación: crece desde el **centro de la pestaña clicada** (`transformOrigin` medido con refs), no desde el medio de la barra.
-- Borde de pestaña activa con `layoutId` (framer-motion) para deslizar orilla.
+- Fila con `border-b border-gray-200`; sin caja gruesa ni línea separada debajo.
+- Pestaña activa: subrayado `h-0.5` con `layoutId="pestana-underline"` (framer-motion) y color `TAB_THEMES[tab].lineBg`.
+- Texto/icono activo con color del tema; inactivo gris.
+- Móvil: `grid-cols-4`; desktop: `md:flex` fila única.
 
 **Contenido:** `AnimatePresence` + slide horizontal según dirección del cambio de tab.
 
-**Móvil (sin scroll horizontal):**
+**Header “Gestión de Datos”:**
 
-- Grid en filas de 4: `grid-cols-4` (icono arriba + label abajo, más grandes: `text-[11px]`, `py-2.5`, icon `w-4`).
-- Desktop: `md:flex` fila única.
-- Header móvil: búsqueda junto a “Gestión de Datos”; **Estadísticas** + **Nuevo** en una sola fila a ancho completo (`flex-1` cada uno).
+- Fila: título izquierda + botón **Estadísticas** derecha (solo eso; sin buscador ni Nuevo global).
+- Al cambiar de pestaña: `setSearchTerm("")`.
+
+**Buscador y Nuevo por pestaña** (ver §12): dentro del contenido de cada tab, no en el header global.
 
 ---
 
@@ -163,7 +192,7 @@ export type FormatoVista = "tarjetas" | "tabla";
 
 - Si `formato === "tabla"`: renderizar `<table>` con columnas  
   **No. | Nombre | DPI | Teléfono | Edad | Sexo | Ubicación | Padrón | Acciones**  
-  (Acciones solo si puede editar/eliminar; SEDE no ve esa columna).
+  (Acciones solo si `puedeEditar`; SEDE solo edita en **su** célula vía `soloLectura` + `esUsuarioSede(lider)`).
 - Si `formato === "tarjetas"`: grid de tarjetas con el mismo menú de acciones / carnet / teléfono.
 - Mismo orden de afiliados en ambos modos (líder primero, luego por fecha/nombre).
 - Contacto reutilizable: `TelefonoInline` / footer de llamada-WhatsApp-carnet.
@@ -185,7 +214,7 @@ export type FormatoVista = "tarjetas" | "tabla";
 - `Tabla` emite `onVerFamilia(titular)` en lugar de abrir `Dialog`.
 - UI embebida:
   - Botón **“Volver a miembros”** (`ArrowLeft`).
-  - Cabecera “Familia de {nombre}” + **“Añadir Familiar”** (oculto si SEDE).
+  - Cabecera “Familia de {nombre}” + **“Añadir Familiar”** (oculto si `soloLectura` en esa célula).
   - Misma `Tabla` con `isFamilyView` y afiliados = titular + `familiar_de === titular.id`.
 - Toggle Tarjetas/Lista sigue disponible en la vista familia.
 - Al cambiar de pestaña (Miembros / Estadísticas / Mensajes) limpiar `titularFamilia`.
@@ -258,19 +287,26 @@ Entrar a familia: slide desde la derecha. Volver a miembros: slide desde la izqu
 
 **Fix:** Reemplazar por **tres puntos verticales** (`MoreVertical`) + `DropdownMenu`:
 
-- Trigger: icono ⋮.
-- Opciones: **Editar**; **Eliminar** solo si `ADMIN/SUPER` (y misma regla de no borrar con afiliados).
-- Visible en desktop y móvil (sin acordeón de acciones).
+- Trigger: icono ⋮ compacto (`h-8 w-8`).
+- Opciones: **Editar**; **Eliminar** solo si `ADMIN/SUPER` **y** `lider.id !== idUsuarioSesion`.
+- Eliminar: `swalNoEliminarCelula()` si `conteoAfiliados > 0`.
+- Menú compacto: `text-sm`, `py-2 px-2.5`, `min-w-[7.5rem]`.
 - Solo si `puedeGestionarUsuarios` (`ADMIN/SUPER/DOCUMENTADOR`); SEDE no ve el menú.
+
+**Filas líder (UI):**
+
+- Nombre en una línea; a la derecha: `Nivel de compromiso:` en negro/blanco + nivel en color (`textoColor`).
+- Más `pt` en la card; badges Total / Titulares / Familiares con `leading-none`.
+- **Paginación simple:** `<` `1/3` `>` + `<select>` nativo (10 / 50 / Todos); `mb-10 md:mb-14`.
 
 ```tsx
 <DropdownMenu>
   <DropdownMenuTrigger asChild>
     <button … aria-label="Acciones"><MoreVertical /></button>
   </DropdownMenuTrigger>
-  <DropdownMenuContent>
+  <DropdownMenuContent align="end" className="min-w-[7.5rem] p-1">
     <DropdownMenuItem onClick={() => onEditar(lider)}>Editar</DropdownMenuItem>
-    {esAdminOSuper && (
+    {esAdminOSuper && lider.id !== idUsuarioSesion && (
       <DropdownMenuItem onClick={…}>Eliminar</DropdownMenuItem>
     )}
   </DropdownMenuContent>
@@ -279,103 +315,141 @@ Entrar a familia: slide desde la derecha. Volver a miembros: slide desde la izqu
 
 ---
 
-## 12. Botón “Nuevo” — crear Líder / Empleado / Admin / Super (`Ver.tsx` + `SignForm.tsx`)
+## 12. Botones “Nuevo” por pestaña + SignForm con cards de rol (`Ver.tsx` + `SignForm.tsx`)
 
-**Problema:** El botón decía “Nuevo Líder” y solo abría el modal de creación con rol LIDER editable.
+**Problema:** Un solo botón “Nuevo” global con dropdown no encajaba con el flujo por pestaña.
 
-**Fix:**
+**Fix — barra por pestaña (`renderBarraPestana`):**
 
-- Label del botón: **“Nuevo”** (con `UserPlus` + `ChevronDown`).
-- **Visibilidad del botón:** solo `SUPER` y `ADMIN` (`puedeVerBotonNuevo`). No DOCUMENTADOR.
-- `DropdownMenu` hacia abajo con opciones:
-  - **Líder** → modal con rol `LIDER` **fijo**.
-  - **Empleado** → modal con rol `EMPLEADO` **fijo**.
-  - **Admin** → modal con rol `ADMIN` **fijo**.
-  - **Super** → modal con rol `SUPER` **fijo** — **solo si la sesión es SUPER** (`puedeCrearRolSuper`). ADMIN no ve esta opción.
-- Estado en `Ver.tsx`: `rolCreacionInicial: "LIDER" | "EMPLEADO" | "ADMIN" | "SUPER" | null`.
-- Handler: `handleOpenCreateUsuarioModal(rol)` (bloquear `SUPER` si no es sesión SUPER).
-- Pasar a `SignupForm` la prop `rolInicial={rolCreacionInicial}`.
-- En `SignForm.tsx` (igual que `modoCrearSede`):
-  - Preseleccionar el rol según `rolInicial`.
-  - `rolFijoDesdeMenu` → selector de rol **disabled**.
-  - `rolesParaSelector` solo incluye ese rol (no se puede cambiar a otro).
-  - `SUPER` en selector solo si `esSuperSesion`.
-  - **Importante:** un `<select disabled>` no entra en `FormData`. En `handleSubmit` hacer `formData.set("rol_id", rol_id)` (y nombres/apellidos) desde el state, o el server responde “Todos los campos son obligatorios.”
-- Título del modal según `rolInicial`.
+- Helper: buscador + slot opcional de acciones a la derecha.
+- **Líderes:** “Nuevo Líder” → `handleOpenCreateUsuarioModal("LIDER")`.
+- **Empleados:** “Nuevo Empleado” → `EMPLEADO`.
+- **Administrativos:** “Nuevo Admin” + “Nuevo Super” (Super solo si `puedeCrearRolSuper`).
+- **Miembros / Sede:** solo buscador (crear afiliado desde la célula).
+- **Visibilidad:** solo `ADMIN` y `SUPER` (`puedeVerBotonNuevo`). No DOCUMENTADOR.
+- Al cambiar de pestaña: `setSearchTerm("")`.
+
+**Estado y modal:**
+
+- `rolCreacionInicial: "LIDER" | "EMPLEADO" | "ADMIN" | "SUPER" | null`.
+- `handleOpenCreateUsuarioModal(rol)` — bloquear `SUPER` si sesión no es SUPER.
+- Pasar `rolInicial={rolCreacionInicial}` a `SignupForm`.
 - Limpiar `rolCreacionInicial` al cerrar / éxito / editar / crear sede.
+
+**SignForm — cards de rol (no `<select>`):**
+
+- **Crear:** una sola card de rol (solo lectura), según `rolInicial` o `modoCrearSede`.
+- **Editar:** grid 2 columnas de cards clicables (salvo `rolSoloLectura`).
+- Iconos/colores: Líder naranja (`PiMedal`), Empleado violeta (`PiBriefcase`), Admin índigo (`PiShield`), Super esmeralda (`PiCode`), Sede azul.
+- Excluir `DOCUMENTADOR` del selector.
+- `modoCrearSede` / `editandoSede`: **solo** rol `nombre === "SEDE"` (no filtrar por `r.id === 5` aislado).
+- `rolSoloLectura` incluye `editandoSede` y creación con rol fijo.
+- Input oculto `rol_id` + `formData.set("rol_id", rol_id)` en submit (disabled no entra en FormData).
+- Título del modal según `rolInicial` / modo sede.
 
 **Editar usuario de acceso (email):**
 
 - En `updateUsuarioAction`: actualizar Auth con `email` + `email_confirm: true` (admin).
 - Normalizar: si llega sin `@`, agregar `@app.com`.
-- Tras create/update/delete: `invalidateCachedAuthUsers()` — si no, el dashboard sigue mostrando el email viejo (caché 5 min de `getCachedAuthUsers`).
+- Tras create/update/delete: `invalidateCachedAuthUsers()`.
 
 ```tsx
-{puedeVerBotonNuevo && (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button …><UserPlus /> Nuevo <ChevronDown /></Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent>
-      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("LIDER")}>
-        Líder
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("EMPLEADO")}>
-        Empleado
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("ADMIN")}>
-        Admin
-      </DropdownMenuItem>
-      {puedeCrearRolSuper && (
-        <DropdownMenuItem onClick={() => handleOpenCreateUsuarioModal("SUPER")}>
-          Super
-        </DropdownMenuItem>
-      )}
-    </DropdownMenuContent>
-  </DropdownMenu>
+const renderBarraPestana = (acciones?: ReactNode) => (
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  {/* buscador */}
+  {acciones}
+  </div>
+);
+
+{renderBarraPestana(
+  puedeVerBotonNuevo && (
+    <Button onClick={() => handleOpenCreateUsuarioModal("LIDER")}>
+      <UserPlus /> Nuevo Líder
+    </Button>
+  )
 )}
 ```
 
 ---
 
-## 13. Archivos tocados (checklist port)
+## 13. TypeScript — relación `roles` en mensajes (`mensajes.ts`)
+
+**Problema:** Supabase tipa el join `roles` como `{ nombre }[]` pero el código lo trataba como objeto → error de build.
+
+**Fix:** helper que acepta array u objeto:
+
+```ts
+function nombreRolDesdeRelacion(
+  roles: { nombre: string } | { nombre: string }[] | null | undefined
+): string | null {
+  if (!roles) return null;
+  if (Array.isArray(roles)) return roles[0]?.nombre ?? null;
+  return roles.nombre ?? null;
+}
+```
+
+Usar en filtros/map de filas con cast explícito si hace falta.
+
+---
+
+## 14. Archivos tocados (checklist port)
 
 ```
 lib/swal.ts
+lib/nivelCompromiso.ts                         # mensaje bienvenida sede (sin auto-registro)
 app/api/dashboard/route.ts
 app/api/users/ver/route.ts
+app/actions/usuarios.ts                        # deleteUserAccountAction: no auto-eliminación
 components/afiliados/actions/dashboard.ts
 components/afiliados/actions/usuarios.ts
 components/afiliados/actions/cache.ts          # getCachedAuthUsers (si no existe)
-components/afiliados/Ver.tsx                   # pestañas; Nuevo solo ADMIN/SUPER; opción Super solo SUPER
-components/afiliados/Lideres.tsx               # menú ⋮; sin meta duplicada
-components/afiliados/Celula.tsx                # toggle Tarjetas/Lista; familia embebida + AnimatePresence
-components/afiliados/Tabla.tsx                 # FormatoVista; onVerFamilia; badge Medal
+components/dashboard/actions/mensajes.ts       # nombreRolDesdeRelacion
+components/afiliados/Ver.tsx                   # pestañas underline; barra por tab; Editar/Eliminar Sede
+components/afiliados/Lideres.tsx               # menú ⋮; nivel compromiso inline; paginación simple
+components/afiliados/Celula.tsx                # soloLectura SEDE; toggle Tarjetas/Lista; familia embebida
+components/afiliados/Tabla.tsx                 # soloLectura; FormatoVista; onVerFamilia; badge Medal
 components/afiliados/contacto.tsx              # tel / DPI helpers (si aplica)
 components/afiliados/AfiliadosGeneral.tsx
 components/afiliados/MetaGeneral.tsx           # meta única, más grande
 components/afiliados/esquemas.ts               # esUsuarioSede
 components/afiliados/CarnetAfiliacion.tsx
-components/admin/sign-up/SignForm.tsx          # rolInicial fijo LIDER|EMPLEADO|ADMIN|SUPER
+components/admin/sign-up/SignForm.tsx          # cards de rol; rolInicial; solo SEDE en crear sede
 package.json                                   # + xlsx
 ```
 
+**Roles en BD (referencia):**
+
+| id | nombre       | UI                          |
+| -- | ------------ | --------------------------- |
+| 1  | SUPER        | Crear solo si sesión SUPER  |
+| 2  | ADMIN        | Crear usuarios              |
+| 3  | LIDER        | —                           |
+| 4  | DOCUMENTADOR | **Oculto** en selector      |
+| 5  | SEDE         | Solo en crear/editar sede   |
+| 6  | EMPLEADO     | —                           |
+
 ---
 
-## 14. Criterios de aceptación al portar
+## 15. Criterios de aceptación al portar
 
 - [ ] Editar líder/empleado muestra usuario de acceso (sin `@dominio`).
 - [ ] Swal no crashea al actualizar.
-- [ ] Usuario SEDE ve Sede / Líderes / Empleados / Miembros; no edita ni añade.
+- [ ] Usuario SEDE ve Sede / Líderes / Empleados / Miembros; **no** ve Administrativos / Mensajes / Padrón.
+- [ ] SEDE **puede** crear/editar/eliminar afiliados en **su** célula; en células de líderes/empleados es solo lectura.
+- [ ] Sede no muestra “Registrarme como Sede”; siempre “Añadir Integrante”.
+- [ ] Admin/Super ven **Editar Sede** / **Eliminar Sede** en pestaña Sede.
+- [ ] No se puede eliminar el propio perfil (UI + server action).
 - [ ] Usuario con rol `EMPLEADO` aparece en pestaña Empleados.
-- [ ] Contadores en pestañas correctos; orden con Mensajes al final.
-- [ ] Línea y borde de pestaña animados desde la pestaña elegida.
-- [ ] En teléfono: pestañas `grid-cols-4` más grandes; búsqueda junto a título; Estadísticas/Nuevo en una fila a ancho completo.
+- [ ] Contadores en badges junto al label; pestañas con subrayado `layoutId`; Mensajes al final.
+- [ ] Header: solo “Gestión de Datos” + Estadísticas; buscador y Nuevo **por pestaña**.
 - [ ] Miembros: Todos + tablas + Excel 4 hojas.
-- [ ] En cada célula: toggle **Tarjetas / Lista**; la lista muestra tabla con No., Nombre, DPI, Tel, Edad, Sexo, Ubicación, Padrón (± Acciones).
-- [ ] Familia: dentro de la célula (no modal full-screen); “Volver a miembros” + “Añadir Familiar”; transición suave (slide) al entrar/salir.
+- [ ] En cada célula: toggle **Tarjetas / Lista**; tabla con columnas completas (± Acciones según permisos).
+- [ ] Familia: dentro de la célula; “Volver a miembros” + “Añadir Familiar”; transición slide.
 - [ ] Badge de líder: medalla (`Medal`), no corona.
-- [ ] Botón **Nuevo** solo para ADMIN/SUPER; opciones Líder / Empleado / Admin (rol fijo); **Super** solo lo ve SUPER.
+- [ ] Nuevo Líder / Empleado / Admin por pestaña (solo ADMIN/SUPER); Super solo en Administrativos y solo sesión SUPER.
+- [ ] SignForm: cards de rol (crear = una card; editar = grid); crear sede solo rol SEDE.
 - [ ] Carnet: en móvil se puede guardar/compartir imagen igual al modal.
 - [ ] Solo una **Meta general** arriba (grande); no duplicada en pestaña Líderes.
-- [ ] En filas de líderes/empleados/admins: ⋮ con Editar / Eliminar (no botones sueltos).
+- [ ] Filas líderes: nivel de compromiso a la derecha del nombre; paginación simple.
+- [ ] En filas: ⋮ compacto con Editar / Eliminar (no botones sueltos).
+- [ ] Build pasa sin error TS en `mensajes.ts`.
