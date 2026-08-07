@@ -376,12 +376,8 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
                   }}
                 />
 
-                <p className="relative z-10 pr-16 text-[9px] font-bold uppercase tracking-widest text-[#50A700] md:pr-20 md:text-[10px]">
-                  Pachalum, Quiché
-                </p>
-
                 <p
-                  className={`relative z-10 mt-1 w-full whitespace-nowrap pr-16 font-black uppercase leading-none tracking-tight text-gray-900 md:pr-20 ${claseNombre}`}
+                  className={`relative z-10 w-full whitespace-nowrap pr-16 font-black uppercase leading-none tracking-tight text-gray-900 md:pr-20 ${claseNombre}`}
                 >
                   {nombreCompleto}
                 </p>
@@ -461,6 +457,12 @@ export default function CarnetAfiliacion({ afiliado, open, onClose }: Props) {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="absolute bottom-1 left-3 z-20 text-left md:bottom-1.5 md:left-3.5">
+                <p className="text-xs font-black uppercase leading-tight tracking-wide text-white md:text-sm">
+                  Pachalum, Quiché
+                </p>
               </div>
 
               <div className="absolute bottom-1 right-3 z-20 text-right md:bottom-1.5 md:right-3.5">
