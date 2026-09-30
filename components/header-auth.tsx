@@ -15,7 +15,7 @@ import { useCelula } from "@/contexts/celula-context";
 import { clearCelulaSession } from "@/lib/celula-session";
 
 const headerIconBtn =
-  "group h-10 w-10 p-0 rounded-full shrink-0 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100/50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800/50 transition-colors";
+  "group h-9 w-9 md:h-10 md:w-10 p-0 rounded-full shrink-0 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100/50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800/50 transition-colors";
 
 async function limpiarEstadoSesionCliente(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -105,15 +105,15 @@ export default function AuthButton() {
   }
 
   return email ? (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex w-full flex-col items-end gap-1 md:w-auto">
       <div className="flex flex-col items-end text-right leading-tight">
         <span className="text-xs md:text-xl font-bold">
           {nombres} {apellidos}
         </span>
       </div>
 
-      <div className="flex flex-col items-center gap-1 mt-1">
-        <div className="flex items-center gap-2">
+      <div className="flex w-full flex-col items-end gap-1 mt-1 md:w-auto md:items-center">
+        <div className="flex flex-wrap items-center justify-end gap-1 md:gap-2">
           {(rol === "ADMIN" || rol === "SUPER" || rol === "ADMINISTRADOR") && (
             <ConfiguracionModal />
           )}

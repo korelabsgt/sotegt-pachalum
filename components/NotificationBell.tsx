@@ -11,10 +11,7 @@ type Props = {
 };
 
 export default function NotificationBell({ className }: Props) {
-  const { soportado, activo, cargando, procesando, toggle } =
-    usePushNotifications();
-
-  if (!soportado) return null;
+  const { activo, cargando, procesando, toggle } = usePushNotifications();
 
   const handleClick = async () => {
     const prevActivo = activo;
@@ -35,6 +32,12 @@ export default function NotificationBell({ className }: Props) {
       toast.warning(
         "Permiso de notificaciones denegado. Actívalo en los ajustes del navegador.",
       );
+    } else if ("motivo" in res && res.motivo === "navegador") {
+      toast.warning(
+        "Este navegador no permite notificaciones. Ábrelo en Chrome o instala la app en la pantalla de inicio.",
+      );
+    } else if ("motivo" in res && res.motivo === "sin-clave") {
+      toast.warning("Las notificaciones no están configuradas en el servidor.");
     } else {
       toast.error("No se pudieron activar las notificaciones");
     }

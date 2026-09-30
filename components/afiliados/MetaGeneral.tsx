@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2 } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { PiBriefcaseDuotone, PiMedalDuotone } from "react-icons/pi";
 
@@ -60,7 +60,7 @@ export default function MetaGeneral({
           className="bg-violet-500 h-full shrink-0"
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs md:text-sm font-bold uppercase">
+      <div className="grid grid-cols-1 gap-2 text-xs md:text-sm font-bold uppercase md:flex md:flex-wrap md:items-center md:gap-x-5 md:gap-y-2 [&>span]:justify-between md:[&>span]:justify-start">
         <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
           <Building2 className="h-4 w-4 shrink-0" />
           Sede: {totalSede.toLocaleString()}
@@ -82,7 +82,8 @@ export default function MetaGeneral({
             {pctAporte(totalTrabajadores).toFixed(1)}%
           </span>
         </span>
-        <span className="font-black text-gray-900 dark:text-gray-100 normal-case md:ml-auto">
+        <span className="flex items-center gap-1.5 border-t border-gray-200 dark:border-neutral-700 pt-2 md:border-0 md:pt-0 font-black text-gray-900 dark:text-gray-100 normal-case md:ml-auto">
+          <Users className="h-4 w-4 shrink-0" />
           Total: {total.toLocaleString()}
         </span>
       </div>

@@ -22,18 +22,25 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return outputArray;
 }
 
-function esIOSSinPWA(): boolean {
+function esIOS(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent;
-  const esIOS =
+  return (
     /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function esIOSSinPWA(): boolean {
+  if (!esIOS()) return false;
   const esPWA =
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as Navigator & { standalone?: boolean }).standalone ===
       true;
-  return esIOS && !esPWA;
+  return !esPWA;
 }
+
+export type BloqueoPush = "ios-sin-pwa" | "navegador" | "sin-clave" | null;
 
 async function obtenerVapidPublicKey(): Promise<string> {
   const embebida = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
@@ -117,6 +124,7 @@ async function comprobarSuscripcionActiva(): Promise<boolean> {
 
 export default function usePushNotifications() {
   const [soportado, setSoportado] = useState(false);
+  const [bloqueo, setBloqueo] = useState<BloqueoPush>(null);
   const [activo, setActivo] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -135,6 +143,7 @@ export default function usePushNotifications() {
       if (!navegadorOk) {
         if (!cancelado) {
           setSoportado(false);
+          setBloqueo(esIOS() ? "ios-sin-pwa" : "navegador");
           setCargando(false);
         }
         return;
@@ -146,6 +155,7 @@ export default function usePushNotifications() {
       if (!key) {
         console.warn("[push] Falta NEXT_PUBLIC_VAPID_PUBLIC_KEY en el deploy");
         setSoportado(false);
+        setBloqueo("sin-clave");
         setCargando(false);
         return;
       }
@@ -240,11 +250,13 @@ export default function usePushNotifications() {
   }, [soportado, procesando]);
 
   const toggle = useCallback(async () => {
+    if (bloqueo) return { ok: false as const, motivo: bloqueo };
     return activo ? desactivar() : activar();
-  }, [activo, activar, desactivar]);
+  }, [activo, activar, desactivar, bloqueo]);
 
   return {
     soportado,
+    bloqueo,
     activo,
     cargando,
     procesando,
