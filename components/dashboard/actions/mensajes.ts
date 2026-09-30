@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import supabaseAdmin from "@/lib/supabaseAdmin";
 import { enviarNotificacionPush } from "@/lib/push";
 import { calcularNivelCompromiso } from "@/lib/nivelCompromiso";
+import { obtenerMapaConteosAfiliados } from "@/components/afiliados/actions/conteos";
 
 interface EnviarMensajeInput {
   titulo?: string;
@@ -25,32 +26,28 @@ function calcularNivel(
 }
 
 async function resolverUserIdsPorNivel(nivel: string): Promise<string[]> {
-  const [configRes, perfilesRes, conteoRes] = await Promise.all([
+  const [configRes, perfilesRes, conteoMap] = await Promise.all([
     supabaseAdmin
       .from("sis_configuracion")
       .select("meta_celula, meta_celula_minima, meta_por_lider")
       .single(),
     supabaseAdmin.from("info_perfil").select("user_id"),
-    supabaseAdmin.from("afiliados").select("lider_id").not("lider_id", "is", null),
+    obtenerMapaConteosAfiliados(supabaseAdmin),
   ]);
 
   const metaCelula =
     configRes.data?.meta_por_lider ?? configRes.data?.meta_celula ?? 15;
   const metaMinima = configRes.data?.meta_celula_minima ?? 10;
 
-  const conteoMap = new Map<string, number>();
-  (conteoRes.data || []).forEach((row: { lider_id: string | null }) => {
-    if (row.lider_id) {
-      conteoMap.set(row.lider_id, (conteoMap.get(row.lider_id) || 0) + 1);
-    }
-  });
-
   return (perfilesRes.data || [])
     .map((p: { user_id: string }) => p.user_id)
     .filter(
       (uid) =>
-        calcularNivel(conteoMap.get(uid) || 0, metaCelula, metaMinima).toUpperCase() ===
-        nivel.toUpperCase(),
+        calcularNivel(
+          conteoMap.get(uid)?.total || 0,
+          metaCelula,
+          metaMinima,
+        ).toUpperCase() === nivel.toUpperCase(),
     );
 }
 

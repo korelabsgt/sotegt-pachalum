@@ -5,19 +5,27 @@ import supabaseAdmin from "@/utils/supabase/admin";
 
 export async function obtenerAfiliadosAction(liderId?: string) {
   const supabase = await createClient();
+  const PAGE_SIZE = 1000;
+  const afiliados: Record<string, unknown>[] = [];
+  let from = 0;
 
-  let query = supabase.from("afiliados").select("*");
+  while (true) {
+    let query = supabase.from("afiliados").select("*");
+    if (liderId) {
+      query = query.eq("lider_id", liderId);
+    }
+    const { data, error } = await query
+      .order("created_at", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (liderId) {
-    query = query.eq("lider_id", liderId);
+    if (error) throw new Error(error.message);
+    if (!data?.length) break;
+    afiliados.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
   }
 
-  const { data: afiliados, error } = await query.order("created_at", {
-    ascending: true,
-  });
-
-  if (error) throw new Error(error.message);
-  if (!afiliados) return [];
+  if (!afiliados.length) return [];
 
   const liderIds = [
     ...new Set(afiliados.map((a) => a.lider_id).filter((id) => id)),

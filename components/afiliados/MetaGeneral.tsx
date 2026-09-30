@@ -23,6 +23,7 @@ export default function MetaGeneral({
     objetivo > 0 ? Math.min((n / objetivo) * 100, 100) : 0;
   const progreso =
     objetivo > 0 ? Math.min((total / objetivo) * 100, 100) : 0;
+  const pctAporte = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
   return (
     <div className="mb-6 w-full space-y-3 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-white dark:bg-neutral-900/60 px-4 py-4 md:px-6 md:py-5 shadow-sm">
@@ -30,11 +31,13 @@ export default function MetaGeneral({
         <span className="text-sm md:text-xl font-bold uppercase text-gray-700 dark:text-gray-300 font-sans tracking-tight">
           Meta General de Afiliación
         </span>
-        <span className="text-base md:text-2xl font-black text-blue-700 dark:text-blue-400">
-          {total.toLocaleString()} / {objetivo.toLocaleString()}{" "}
-          <span className="text-sm md:text-lg text-gray-500 dark:text-gray-400 font-bold">
-            ({progreso.toFixed(1)}%)
+        <span className="flex items-center gap-2 text-base md:text-2xl font-black text-blue-700 dark:text-blue-400">
+          {total.toLocaleString()}
+          <span className="rounded-full bg-blue-100 dark:bg-blue-950/60 px-2.5 py-0.5 text-xs md:text-sm font-bold text-blue-700 dark:text-blue-300">
+            {progreso.toFixed(1)}%
           </span>
+          <span className="text-gray-400">/</span>
+          {objetivo.toLocaleString()}
         </span>
       </div>
       <div className="w-full bg-gray-200 dark:bg-neutral-800 rounded-full h-5 md:h-7 border-2 border-white dark:border-neutral-900 shadow-inner overflow-hidden flex items-center relative">
@@ -61,14 +64,23 @@ export default function MetaGeneral({
         <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
           <Building2 className="h-4 w-4 shrink-0" />
           Sede: {totalSede.toLocaleString()}
+          <span className="rounded-full bg-blue-100 dark:bg-blue-950/60 px-2 py-0.5 text-[10px] md:text-xs">
+            {pctAporte(totalSede).toFixed(1)}%
+          </span>
         </span>
         <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
           <PiMedalDuotone className="h-4 w-4 shrink-0" />
           Líderes: {totalLideres.toLocaleString()}
+          <span className="rounded-full bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 text-[10px] md:text-xs">
+            {pctAporte(totalLideres).toFixed(1)}%
+          </span>
         </span>
         <span className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400">
           <PiBriefcaseDuotone className="h-4 w-4 shrink-0" />
           Empleados: {totalTrabajadores.toLocaleString()}
+          <span className="rounded-full bg-violet-100 dark:bg-violet-950/60 px-2 py-0.5 text-[10px] md:text-xs">
+            {pctAporte(totalTrabajadores).toFixed(1)}%
+          </span>
         </span>
         <span className="font-black text-gray-900 dark:text-gray-100 normal-case md:ml-auto">
           Total: {total.toLocaleString()}

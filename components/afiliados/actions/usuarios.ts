@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { getCachedAuthUsers } from "./cache";
+import { obtenerMapaConteosAfiliados } from "./conteos";
 
 export async function listarUsuariosAction(rol_filtro?: string | string[]) {
   const supabase = await createClient();
@@ -29,9 +30,9 @@ export async function listarUsuariosAction(rol_filtro?: string | string[]) {
     }
   }
 
-  const [perfilesRes, conteoRes] = await Promise.all([
+  const [perfilesRes, conteoMap] = await Promise.all([
     filtroPerfiles,
-    supabase.from("afiliados").select("lider_id, familiar_de"),
+    obtenerMapaConteosAfiliados(supabase),
   ]);
 
   if (perfilesRes.error) throw new Error(perfilesRes.error.message);
@@ -39,22 +40,6 @@ export async function listarUsuariosAction(rol_filtro?: string | string[]) {
   const perfiles = perfilesRes.data || [];
   const authUsers = await getCachedAuthUsers();
   const emailMap = new Map(authUsers.map((u) => [u.id, u.email || ""]));
-
-  const conteoMap = new Map<string, { total: number; titulares: number; familiares: number }>();
-
-  const conteoRaw = conteoRes.data || [];
-  conteoRaw.forEach((row) => {
-    if (row.lider_id) {
-      const current = conteoMap.get(row.lider_id) || { total: 0, titulares: 0, familiares: 0 };
-      current.total++;
-      if (row.familiar_de) {
-        current.familiares++;
-      } else {
-        current.titulares++;
-      }
-      conteoMap.set(row.lider_id, current);
-    }
-  });
 
   return perfiles.map((p: any) => ({
     id: p.user_id,
