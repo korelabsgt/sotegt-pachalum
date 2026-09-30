@@ -42,6 +42,15 @@ function esIOSSinPWA(): boolean {
 
 export type BloqueoPush = "ios-sin-pwa" | "navegador" | "sin-clave" | null;
 
+export type MotivoPushFallo =
+  | Exclude<BloqueoPush, null>
+  | "permiso-denegado"
+  | "error";
+
+export type PushToggleResult =
+  | { ok: true }
+  | { ok: false; motivo?: MotivoPushFallo };
+
 async function obtenerVapidPublicKey(): Promise<string> {
   const embebida = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
   if (embebida) return embebida;
@@ -178,7 +187,7 @@ export default function usePushNotifications() {
     };
   }, []);
 
-  const activar = useCallback(async () => {
+  const activar = useCallback(async (): Promise<PushToggleResult | undefined> => {
     if (!soportado || procesando || !vapidKey) return;
 
     if (esIOSSinPWA()) {
@@ -226,7 +235,7 @@ export default function usePushNotifications() {
     }
   }, [soportado, procesando, vapidKey]);
 
-  const desactivar = useCallback(async () => {
+  const desactivar = useCallback(async (): Promise<PushToggleResult | undefined> => {
     if (!soportado || procesando) return;
     setProcesando(true);
     try {
@@ -249,8 +258,8 @@ export default function usePushNotifications() {
     }
   }, [soportado, procesando]);
 
-  const toggle = useCallback(async () => {
-    if (bloqueo) return { ok: false as const, motivo: bloqueo };
+  const toggle = useCallback(async (): Promise<PushToggleResult | undefined> => {
+    if (bloqueo) return { ok: false, motivo: bloqueo };
     return activo ? desactivar() : activar();
   }, [activo, activar, desactivar, bloqueo]);
 
